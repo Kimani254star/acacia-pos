@@ -154,25 +154,27 @@ function open_(id){$(id).classList.add("on")}function close_(){document.querySel
 document.addEventListener("click",function(e){if(e.target.hasAttribute&&e.target.hasAttribute("data-x"))close_()});
 
 /* ---------- payment ---------- */
+function defBank(m){var c=cfg();return c.map[m]||c.map.Cash||""}
 function bankNames(){return(D.banks||[]).map(function(b,i){return{i:i,n:(b&&(b.name||b.bankName||b.accountName))||("Fund "+(i+1))}})}
 function total(){return r2(calc().total)}
-$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}tenders=[{m:"Cash",a:total(),ref:""}];drawPay();open_("mPay")};
+$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay();open_("mPay")};
 function drawPay(){var t=total();$("pDue").textContent=cur()+" "+money(t);
-  $("pRows").innerHTML=tenders.map(function(x,i){return'<div class="tender"><select data-i="'+i+'" data-k="m">'+METHODS.concat(["On account"]).map(function(m){return'<option'+(m===x.m?" selected":"")+">"+m+"</option>"}).join("")+'</select><input type="number" step="any" min="0" data-i="'+i+'" data-k="a" value="'+x.a+'">'+(x.m==="Cash"||x.m==="On account"?"":'<input data-i="'+i+'" data-k="ref" placeholder="Reference" value="'+esc(x.ref)+'">')+'<button class="q" data-rm="'+i+'">✕</button></div>'}).join("");sumPay()}
+  $("pRows").innerHTML=tenders.map(function(x,i){return'<div class="tender"><select data-i="'+i+'" data-k="m">'+METHODS.concat(["On account"]).map(function(m){return'<option'+(m===x.m?" selected":"")+">"+m+"</option>"}).join("")+'</select><input type="number" step="any" min="0" data-i="'+i+'" data-k="a" value="'+x.a+'">'+(x.m==="Cash"||x.m==="On account"?"":'<input data-i="'+i+'" data-k="ref" placeholder="Reference" value="'+esc(x.ref)+'">')+(x.m==="On account"?"":'<select class="fund" data-i="'+i+'" data-k="b"><option value="">— Fund / bank —</option>'+bankNames().map(function(b){return'<option'+(b.n===x.b?" selected":"")+">"+esc(b.n)+"</option>"}).join("")+"</select>")+'<button class="q" data-rm="'+i+'">✕</button></div>'}).join("");sumPay()}
 function sumPay(){var t=total(),paid=0,cashIn=0,acct=0;tenders.forEach(function(x){var a=Number(x.a)||0;if(x.m==="On account")acct+=a;else{paid+=a;if(x.m==="Cash")cashIn+=a}});
   var change=Math.max(r2(paid-(t-acct)),0),msg="";if(change>cashIn)msg="Only cash can give change.";
   var short=r2(t-paid-acct);if(short>0)msg="Short by "+money(short);if(acct>0&&low($("cu").value)===low(cfg().walk))msg="Pick a named customer for sales on account.";
+  if(!msg&&bankNames().length){var nf=tenders.filter(function(x){return x.m!=="On account"&&(Number(x.a)||0)>0&&!x.b})[0];if(nf)msg="Pick the fund / bank for "+nf.m}
   $("pPaid").textContent=money(paid+acct);$("pChg").textContent=money(change);$("pMsg").textContent=msg;$("pOk").disabled=!!msg;pay.change=change;pay.msg=msg}
 var pay={};
 $("pRows").addEventListener("input",function(e){var t=e.target,x=tenders[+t.dataset.i];if(!x)return;x[t.dataset.k]=t.dataset.k==="a"?parseFloat(t.value)||0:t.value;sumPay()});
-$("pRows").addEventListener("change",function(e){var t=e.target;if(t.dataset.k==="m"){tenders[+t.dataset.i].m=t.value;drawPay()}});
-$("pRows").addEventListener("click",function(e){var b=e.target.closest("[data-rm]");if(b){tenders.splice(+b.dataset.rm,1);if(!tenders.length)tenders=[{m:"Cash",a:0,ref:""}];drawPay()}});
-$("pAdd").onclick=function(){var paid=tenders.reduce(function(s,x){return s+(Number(x.a)||0)},0);tenders.push({m:"M-Pesa",a:Math.max(r2(total()-paid),0),ref:""});drawPay()};
-$("pExact").onclick=function(){tenders=[{m:"Cash",a:total(),ref:""}];drawPay()};
+$("pRows").addEventListener("change",function(e){var t=e.target;if(t.dataset.k==="m"){tenders[+t.dataset.i].m=t.value;tenders[+t.dataset.i].b=t.value==="On account"?"":defBank(t.value);drawPay()}});
+$("pRows").addEventListener("click",function(e){var b=e.target.closest("[data-rm]");if(b){tenders.splice(+b.dataset.rm,1);if(!tenders.length)tenders=[{m:"Cash",a:0,ref:"",b:defBank("Cash")}];drawPay()}});
+$("pAdd").onclick=function(){var paid=tenders.reduce(function(s,x){return s+(Number(x.a)||0)},0);tenders.push({m:"M-Pesa",a:Math.max(r2(total()-paid),0),ref:"",b:defBank("M-Pesa")});drawPay()};
+$("pExact").onclick=function(){tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay()};
 
 /* ---------- sale ---------- */
 function nextNumber(till){var pre="POS"+till.replace(/[^A-Za-z0-9]/g,"")+"-",mx=0;
-  (D.invoices||[]).concat(lsg("pos_queue",[]).map(function(q){return q.invoice})).forEach(function(i){var n=String(i&&i.invoiceNumber||"");if(n.indexOf(pre)===0){var v=parseInt(n.slice(pre.length),10);if(v>mx)mx=v}});
+  (D.invoices||[]).concat(lsg("pos_queue",[]).map(function(q){return q.invoice})).forEach(function(i){var n=String(i&&(i.posRef||i.invoiceNumber)||"");if(n.indexOf(pre)===0){var v=parseInt(n.slice(pre.length),10);if(v>mx)mx=v}});
   var l=lsg("pos_counter_"+S.companyId+pre,0);return pre+String(Math.max(mx,l)+1).padStart(5,"0")}
 $("pOk").onclick=async function(){
   if(pay.msg)return;var btn=this;btn.disabled=true;var c=cfg(),cs=calc(),t=total(),now=new Date(),date=today(),acctSum=0,paid=0,cashIn=0;
@@ -183,11 +185,11 @@ $("pOk").onclick=async function(){
   var inv={id:id,invoiceNumber:no,date:date,customer:$("cu").value,netDays:acctSum>0?c.days:0,dueDate:date,account:acct,salesPerson:S.name,lpo:"",
     items:cs.lines.map(function(l){var o=Object.assign({},l);delete o._acct;return o}),total:cs.total.toFixed(dpl),discount:cs.dis.toFixed(dpl),vat:cs.vat.toFixed(dpl),
     salesGeneral:cs.gen.toFixed(dpl),salesOther:cs.oth.toFixed(dpl),salesZero:cs.zero.toFixed(dpl),salesExempt:cs.ex.toFixed(dpl),currency:cur(),exchangeRate:1,totalKES:r2(cs.total),paid:false,status:"Unpaid",source:"POS",
-    pos:{till:c.till,cashier:S.name,at:now.toISOString(),tenders:tenders.map(function(x){return{m:x.m,a:Number(x.a)||0,ref:x.ref||""}}),change:change}};
+    pos:{till:c.till,cashier:S.name,at:now.toISOString(),tenders:tenders.map(function(x){return{m:x.m,a:Number(x.a)||0,ref:x.ref||"",bank:x.b||""}}),change:change}};
   if(acctSum>0&&paid>0){}
   var pays=[],left=applied;
   tenders.forEach(function(x,i){if(x.m==="On account")return;var a=Number(x.a)||0;if(x.m==="Cash")a=Math.max(r2(a-change),0);if(a<=0)return;a=Math.min(a,left);left=r2(left-a);
-    var bank=(c.map[x.m]||c.map.Cash||"");pays.push({id:id+"-"+i,invoiceId:id,invoiceNumber:no,date:date,amount:a,method:x.m,bank:bank,reference:no+(x.ref?" "+x.ref:""),status:"pending",app:"POS"})});
+    var bank=(x.b||c.map[x.m]||c.map.Cash||"");pays.push({id:id+"-"+i,invoiceId:id,invoiceNumber:no,date:date,amount:a,method:x.m,bank:bank,reference:no+(x.ref?" "+x.ref:""),status:"pending",app:"POS"})});
   var rec={invoice:inv,pays:pays,customer:inv.customer,walk:inv.customer===c.walk};
   var q=lsg("pos_queue",[]);q.push(rec);lss("pos_queue",q);lss("pos_counter_"+S.companyId+"POS"+c.till.replace(/[^A-Za-z0-9]/g,"")+"-",parseInt(no.split("-").pop(),10));
   lastSale={inv:inv,paid:paid,change:change,tendered:paid};
