@@ -58,7 +58,7 @@ window.showRegisterForm=function(){window.open("https://acacia-books.vercel.app/
 window.choosePlan=function(){window.showRegisterForm()};
 document.addEventListener("click",function(e){if(e.target.closest("#lpBack")){e.preventDefault();document.body.classList.add("lp-on");try{history.replaceState(null,"",location.pathname+location.search)}catch(x){}}});
 </script>
-<div id="login"><button type="button" class="lp-back" id="lpBack">&larr; Back to home</button><h1>Acacia POS</h1><p>Sign in with your Acacia Books company, email and password.</p>
+<div id="login"><button type="button" class="lp-back" id="lpBack">&larr; Back to home</button><h1>Acacia POS</h1><p>Sign in with your Acacia company, email and password.</p>
 <input id="lc" placeholder="Company name" autocomplete="organization"><input id="le" type="email" placeholder="Email" autocomplete="email"><input id="lp" type="password" placeholder="Password" autocomplete="current-password">
 <button class="btn" id="lb">Sign in</button><div id="err"></div><div class="lp-new">No Acacia account yet? <a href="https://acacia-books.vercel.app/" target="_blank" rel="noopener">Create one in Acacia Books</a></div></div>
 
@@ -97,7 +97,7 @@ document.addEventListener("click",function(e){if(e.target.closest("#lpBack")){e.
 <div class="modal" id="mHeld"><div class="box"><h2>Held sales</h2><div id="hdBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mDone"><div class="box"><h2>Sale complete</h2><div class="due" id="dTot"></div><div class="row"><label>Change</label><span class="chg" id="dChg"></span></div><div id="dNote" style="color:#6b7280"></div>
 <div class="row"><button class="btn alt" id="dPrint">Print receipt</button><button class="btn gold" id="dNew" style="flex:1;padding:12px">New sale</button></div></div></div>
-<div class="modal" id="mLock" style="background:#14275f"><div class="box"><h2>Acacia POS is not active</h2><p>This company has not added Acacia POS yet. It is a paid add-on at KES 2,500 and works on every plan, including Free.</p><p id="lkWhy" style="color:#6b7280"></p><p>Once it is added, sign in again and it opens straight away.</p><div class="row"><button class="btn" id="lkOut" style="flex:1">Sign out</button></div></div></div>
+<div class="modal" id="mLock" style="background:#14275f"><div class="box"><h2>Acacia POS is not active</h2><p>This company has not added Acacia POS yet. POS needs an Acacia Books company (the Free plan is enough). It costs KES 2,500 per month on the Free Books plan, or only KES 500 per month on a paid Books plan. Ask Acacia Support to switch it on.</p><p id="lkWhy" style="color:#6b7280"></p><p>Once it is added, sign in again and it opens straight away.</p><div class="row"><button class="btn" id="lkOut" style="flex:1">Sign out</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -164,7 +164,7 @@ async function loadAll(){
 async function start(){
   $("login").style.display="none";$("app").style.display="grid";
   try{await loadAll()}catch(e){toast("Could not load data: "+e.message);return}
-  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
+  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+(a&&a.mode?"Plan: "+(a.mode==="linked"?"Paid Books plan (KES 500/month)":"Free Books plan (KES 2,500/month)")+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
   fillStatic();render();flushQueue();
 }
 function cfg(){var s=D.posSettings||{},l=lsg("pos_local",{});return{till:l.till||"T1",wh:l.wh||"",walk:s.walk||"Walk-in Customer",days:s.days!=null?s.days:30,neg:!!s.neg,foot:s.foot||"Thank you for shopping with us.",map:s.map||{}}}
