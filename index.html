@@ -1,13 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Acacia POS</title><script src="config.js"></script><script src="acacia-appearance.js"></script><meta name="theme-color" content="#1e3a8a">
+<title>Acacia POS</title><script src="theme.js"></script><script src="config.js"></script><script src="acacia-appearance.js"></script><meta name="theme-color" content="#1e3a8a">
 <link rel="stylesheet" href="style.css">
-#landingFrame{display:none;position:fixed;inset:0;width:100%;height:100%;border:0;z-index:60;background:#fff}
-body.lp-on #landingFrame{display:block}body.lp-on #login{display:none}
-.lp-back{display:block;margin:0 0 14px;background:0;border:0;padding:0;color:#1e3a8a;font-weight:600;cursor:pointer}
-.lp-new{margin-top:14px;text-align:center;color:#6b7280;font-size:13px}.lp-new a{color:#1e3a8a;font-weight:600}
-</style>
 </head><body>
 
 <script src="landing-gate.js"></script>
@@ -43,16 +38,17 @@ body.lp-on #landingFrame{display:block}body.lp-on #login{display:none}
 <div class="row"><label>Allow zero stock</label><select id="sNeg"><option value="0">No</option><option value="1">Yes</option></select></div>
 <div class="row"><label>Receipt footer</label><input id="sFoot"></div>
 <h3>Where money goes in Books (fund)</h3><div id="sMap"></div>
-<p style="color:#6b7280">Funds, walk-in name, days and footer are shared by every till of this company. Till name and warehouse stay on this device.</p>
+<p style="color:var(--mut)">Funds, walk-in name, days and footer are shared by every till of this company. Till name and warehouse stay on this device.</p>
 <div class="row"><button class="btn alt" data-x>Close</button><button class="btn" id="sSave" style="flex:1">Save settings</button></div></div></div>
 
-<div class="modal" id="mPref"><div class="box"><h2>Preferences</h2><div data-acacia-appearance></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
+<div class="modal" id="mImg"><div class="box wide imgbox"><h2 id="imgTitle"></h2><div class="imgwrap"><img id="imgBig" alt=""></div><div class="row"><button class="btn alt" data-x>Close</button><button class="btn alt" id="imgChange">📷 Change picture</button><button class="btn gold" id="imgAdd" style="flex:1;padding:12px">Add to cart</button></div></div></div>
+<div class="modal" id="mPref"><div class="box"><h2>Preferences</h2><div class="theme-row"><label for="themeSel">Theme</label><select id="themeSel"><option value="auto">Automatic (device)</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div data-acacia-appearance></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mToday"><div class="box wide"><h2>Sales today</h2><div id="tdBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mShift"><div class="box"><h2>Shift</h2><div id="shBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mHeld"><div class="box"><h2>Held sales</h2><div id="hdBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
-<div class="modal" id="mDone"><div class="box"><h2>Sale complete</h2><div class="due" id="dTot"></div><div class="row"><label>Change</label><span class="chg" id="dChg"></span></div><div id="dNote" style="color:#6b7280"></div>
+<div class="modal" id="mDone"><div class="box"><h2>Sale complete</h2><div class="due" id="dTot"></div><div class="row"><label>Change</label><span class="chg" id="dChg"></span></div><div id="dNote" style="color:var(--mut)"></div>
 <div class="row"><button class="btn alt" id="dPrint">Print receipt</button><button class="btn gold" id="dNew" style="flex:1;padding:12px">New sale</button></div></div></div>
-<div class="modal" id="mLock" style="background:#14275f"><div class="box"><h2>Acacia POS is not active</h2><p>This company has not added Acacia POS yet. POS needs an Acacia Books company (the Free plan is enough). It costs KES 2,500 per month on the Free Books plan, or only KES 500 per month on a paid Books plan. Ask Acacia Support to switch it on.</p><p id="lkWhy" style="color:#6b7280"></p><p>Once it is added, sign in again and it opens straight away.</p><div class="row"><button class="btn" id="lkOut" style="flex:1">Sign out</button></div></div></div>
+<div class="modal" id="mLock" style="background:var(--navy)"><div class="box"><h2>Acacia POS is not active</h2><p>This company has not added Acacia POS yet. POS needs an Acacia Books company (the Free plan is enough). It costs KES 2,500 per month on the Free Books plan, or only KES 500 per month on a paid Books plan. Ask Acacia Support to switch it on.</p><p id="lkWhy" style="color:var(--mut)"></p><p>Once it is added, sign in again and it opens straight away.</p><div class="row"><button class="btn" id="lkOut" style="flex:1">Sign out</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="app.js"></script></body></html>
