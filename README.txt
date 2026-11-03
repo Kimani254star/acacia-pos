@@ -5,3 +5,9 @@ ACACIA POS - setup
 3. No new SQL: POS uses the same company_state and app_accounts tables as your other apps.
 4. First use: sign in with your Books company, email, password > Settings > pick a fund for Cash / M-Pesa / Card >
    Shift > Open shift > sell.
+
+
+HOME PAGE
+index.html shows the same Acacia Enterprise home page as Books (landing.html, loaded full-screen) to visitors who are not signed in.
+Upload BOTH index.html and landing.html. Sign In / Point of Sale links open the POS login; Books links open Acacia Books in a new tab.
+/#signin goes straight to the login.
