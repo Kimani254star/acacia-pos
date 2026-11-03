@@ -87,9 +87,27 @@ function catalogue(){var out=[],pen=pending(),sel=$("wh").value,t=low(term);
   return out.sort(function(a,b){return a.it.name.localeCompare(b.it.name)})}
 function itemImg(it){var k=it.sku||it.name,v=it.image||it.imageUrl||it.photo||it.img||it.picture||it.itemImage||(D.posItemImages||{})[k];return typeof v==="string"&&/^(data:image\/|https?:\/\/)/.test(v)?v:""}
 function initials(n){var w=String(n||"?").trim().split(/\s+/);return(w[0][0]+(w[1]?w[1][0]:"")).toUpperCase()}
-function renderGrid(){var c=cfg(),list=catalogue().slice(0,300);
-  $("grid").innerHTML=list.length?list.map(function(x,i){var o=x.have<=0&&!c.neg,im=itemImg(x.it);return'<button class="p'+(o?" out":"")+'" data-i="'+i+'"><span class="im'+(im?' has':'')+'">'+(im?'<img loading="lazy" title="Tap to view picture" src="'+esc(im)+'" alt="">':esc(initials(x.it.name)))+'<span class="cam" data-cam="'+i+'" title="Add or change picture">📷</span></span><span class="n">'+esc(x.it.name)+'</span><span class="st">'+esc(x.it.sku||"")+(x.wh?" · "+esc(x.wh):"")+" · "+(o?"Out of stock":x.have+" in stock")+'</span><span class="pr">'+money(x.price)+"</span></button>"}).join(""):'<div class="empty">No items found. Items come from Inventory in Acacia Books.</div>';
-  $("grid").onclick=function(e){var cm=e.target.closest(".cam");if(cm){e.stopPropagation();pickImg(list[+cm.dataset.cam]);return}var b=e.target.closest(".p");if(b&&e.target.closest(".im.has")){e.stopPropagation();viewImg(list[+b.dataset.i]);return}if(b)addToCart(list[+b.dataset.i])};
+function catCls(c){c=low(c);return/whisk|scotch|bourbon/.test(c)?"c-whisky":/wine|champagne|prosecco/.test(c)?"c-wine":/beer|lager|stout|cider|\bale\b/.test(c)?"c-beer":/vodka/.test(c)?"c-vodka":/\bgin\b/.test(c)?"c-gin":/rum|brandy|cognac|tequila|liqueur/.test(c)?"c-rum":""}
+function pfmt(n){n=Number(n)||0;var s=Number.isInteger(n)?n.toLocaleString():money(n),k=cur();return(k==="KES"?"KSh":k)+"\u00a0"+s}
+function renderGrid(){var c=cfg(),all=catalogue(),list=all.slice(0,300);
+  if($("count"))$("count").textContent=all.length+(all.length===1?" product":" products");
+  $("grid").innerHTML=list.length?list.map(function(x,i){
+    var it=x.it,o=x.have<=0&&!c.neg,im=itemImg(it),
+      cat=it.category||it.itemCategory||it.group||"",size=it.size||it.unit||it.uom||"",
+      abv=it.abv!=null&&String(it.abv)!==""?it.abv:"",
+      old=Number(it.oldPrice||it.listPrice||it.wasPrice)||0,off=old>x.price&&x.price>0?Math.round((old-x.price)/old*100):0,
+      meta=[cat,size].filter(Boolean).map(esc).join(" \u00b7 ")||(esc(it.sku||"")+(x.wh?(it.sku?" \u00b7 ":"")+esc(x.wh):"")),
+      tag=x.have<=0?'<span class="tag out">Out of stock</span>':x.have<=5?'<span class="tag low">Only '+x.have+' left</span>':'<span class="tag ok">'+x.have+' in stock</span>';
+    return'<div class="p'+(o?" out":"")+'" data-i="'+i+'">'
+      +'<div class="im'+(im?' has':'')+'">'+(im?'<img loading="lazy" title="Tap to view picture" src="'+esc(im)+'" alt="">':'<span class="ini">'+esc(initials(it.name))+'</span>')
+      +(off?'<span class="off">-'+off+'%</span>':'')
+      +(abv!==""?'<span class="abv">'+esc(abv)+'<small>%</small></span>':'')
+      +'<span class="cam" data-cam="'+i+'" title="Add or change picture">\ud83d\udcf7</span></div>'
+      +'<div class="bd"><div class="cat '+catCls(cat)+'">'+meta+'</div>'
+      +'<h3 class="n">'+esc(it.name)+'</h3>'
+      +'<div class="pr-row"><span class="pr">'+pfmt(x.price)+'</span>'+(off?'<s class="was">'+pfmt(old)+'</s>':'')+tag+'</div>'
+      +'<button type="button" class="add"'+(o?' disabled':'')+'>'+(o?'Out of stock':'+ Add to cart')+'</button></div></div>'}).join(""):'<div class="empty">No items found. Items come from Inventory in Acacia Books.</div>';
+  $("grid").onclick=function(e){var cm=e.target.closest(".cam");if(cm){e.stopPropagation();pickImg(list[+cm.dataset.cam]);return}var b=e.target.closest(".p");if(b&&e.target.closest(".im.has")){e.stopPropagation();viewImg(list[+b.dataset.i]);return}if(b&&!b.classList.contains("out"))addToCart(list[+b.dataset.i])};
   renderGrid.list=list}
 var imgKey="",viewing=null;
 function viewImg(x){if(!x)return;var u=itemImg(x.it);if(!u)return;viewing=x;$("imgBig").src=u;$("imgBig").alt=x.it.name||"";$("imgTitle").textContent=x.it.name||"";open_("mImg")}
