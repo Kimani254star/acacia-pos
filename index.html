@@ -146,7 +146,7 @@ async function loadAll(){
 async function start(){
   $("login").style.display="none";$("app").style.display="grid";
   try{await loadAll()}catch(e){toast("Could not load data: "+e.message);return}
-  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=a&&a.active?"Your POS access ended on "+a.until+".":"";$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
+  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
   fillStatic();render();flushQueue();
 }
 function cfg(){var s=D.posSettings||{},l=lsg("pos_local",{});return{till:l.till||"T1",wh:l.wh||"",walk:s.walk||"Walk-in Customer",days:s.days!=null?s.days:30,neg:!!s.neg,foot:s.foot||"Thank you for shopping with us.",map:s.map||{}}}
