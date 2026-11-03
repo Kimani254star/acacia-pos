@@ -15,3 +15,7 @@ Upload every file in this folder; index.html links style.css and the .js files, 
 
 THEME
 Preferences > Theme: Automatic (follows the device), Light or Dark. Saved on each device.
+
+
+RIGHT TOOLS RAIL
+Same right-side rail as Acacia Books (Notebook, Webinar, Team Status, Meet, Docs, Sheets, Photos, Calendar, Organization Details). Meet/Docs/Sheets/Photos/Calendar open the Books pages; the other four open Acacia Books. Change the Books address with window.ACACIA_BOOKS_URL in config.js. The arrow at the top of the rail hides/shows it.

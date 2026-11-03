@@ -248,5 +248,11 @@ $("sSave").onclick=async function(){var map={};document.querySelectorAll("#sMap 
 $("bOut").onclick=function(){if(cart.length&&!confirm("Sign out and lose the current sale?"))return;localStorage.removeItem("pos_session");location.reload()};
 $("lb").onclick=login;$("lp").addEventListener("keydown",function(e){if(e.key==="Enter")login()});
 var ss=lsg("pos_session",null);if(ss&&ss.companyId){S=ss;start()}
+
+/* right tools rail: same buttons as Acacia Books. Pages open in Books (set window.ACACIA_BOOKS_URL in config.js to change) */
+(function(){var rr=document.getElementById("rrail");if(!rr)return;var BK=(window.ACACIA_BOOKS_URL||"https://acacia-books.vercel.app/").replace(/\/?$/,"/");
+try{if(localStorage.getItem("pos_rail_min")==="1"){rr.classList.add("min");document.getElementById("rrTog").setAttribute("aria-expanded","false")}}catch(e){}
+document.getElementById("rrTog").onclick=function(){var m=rr.classList.toggle("min");this.setAttribute("aria-expanded",m?"false":"true");try{localStorage.setItem("pos_rail_min",m?"1":"0")}catch(e){}};
+rr.querySelectorAll("[data-bk]").forEach(function(b){b.onclick=function(){var w=window.open(BK+b.getAttribute("data-bk"),"_blank");if(!w)alert("Popup blocked! Please allow pop-ups for this site.")}})})();
 })();
 
