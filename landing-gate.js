@@ -1,0 +1,1 @@
+try{var __s=JSON.parse(localStorage.getItem("pos_session")||"null");if(!(__s&&__s.companyId)&&location.hash!=="#signin")document.body.classList.add("lp-on")}catch(e){document.body.classList.add("lp-on")}
