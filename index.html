@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Acacia POS</title><meta name="theme-color" content="#1e3a8a">
+<title>Acacia POS</title><script>window.ACACIA_APPEARANCE={sidebar:"#side",items:"#side button",rightbar:"#none",rightitems:"#none button"};</script><script src="acacia-appearance.js"></script><meta name="theme-color" content="#1e3a8a">
 <style>
 :root{--navy:#14275f;--navy2:#1e3a8a;--gold:#facc15;--ink:#111827;--mut:#6b7280;--line:#e5e7eb;--bg:#f3f4f6;--ok:#15803d;--bad:#b91c1c}
 *{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);height:100vh;overflow:hidden}
@@ -11,10 +11,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #login{max-width:380px;margin:9vh auto;background:#fff;padding:28px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.12)}
 #login h1{margin:0 0 4px;color:var(--navy2)}#login p{margin:0 0 16px;color:var(--mut)}#login input{width:100%;margin-bottom:10px}#login .btn{width:100%;padding:11px}
 #err{color:var(--bad);min-height:20px;margin-top:8px}
-#app{display:none;height:100vh;grid-template-rows:auto 1fr;}
+#app{display:none;height:100vh;grid-template-columns:190px 1fr;grid-template-rows:auto 1fr}
+#side{grid-row:1/3;background:var(--navy);color:#fff;display:flex;flex-direction:column;gap:4px;padding:12px 8px;overflow:auto}
+#side .brand{font-size:17px;font-weight:800;padding:4px 8px 10px}#side .tag{background:rgba(255,255,255,.14);padding:3px 9px;border-radius:99px;font-size:12px;display:block;margin:2px 4px}
+#side .sp{flex:1}#side button{background:transparent;color:#fff;border:0;border-radius:8px;padding:10px 12px;text-align:left;font-weight:600}#side button:hover{background:rgba(255,255,255,.14)}
 header{background:var(--navy);color:#fff;display:flex;gap:12px;align-items:center;padding:8px 14px;flex-wrap:wrap}
-header b{font-size:16px}header .sp{flex:1}header .tag{background:rgba(255,255,255,.14);padding:3px 9px;border-radius:99px;font-size:12px}
-header button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 10px}
+header b{font-size:16px}header .sp{flex:1}
 main{display:grid;grid-template-columns:1fr 400px;min-height:0}
 .left{display:flex;flex-direction:column;min-height:0;padding:10px}.bar{display:flex;gap:8px;margin-bottom:10px}.bar input{flex:1}
 #grid{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start;padding-bottom:10px}
@@ -35,7 +37,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border-bottom:1p
 .tender{display:flex;gap:6px;margin:6px 0;align-items:center}.tender select{width:150px}.tender input{flex:1}
 .due{font-size:26px;font-weight:800;color:var(--navy2)}.chg{font-size:20px;font-weight:700;color:var(--ok)}.warn{color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:99}
-@media(max-width:820px){main{grid-template-columns:1fr;grid-template-rows:1fr 46vh}.right{border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:820px){#app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}#side{grid-row:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px}#side .brand,#side .sp{display:none}#side .tag{display:inline-block}#side button{padding:7px 10px}main{grid-template-columns:1fr;grid-template-rows:1fr 46vh}.right{border-left:0;border-top:1px solid var(--line)}}
 </style></head><body>
 
 <div id="login"><h1>Acacia POS</h1><p>Sign in with your Acacia Books company, email and password.</p>
@@ -43,8 +45,9 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border-bottom:1p
 <button class="btn" id="lb">Sign in</button><div id="err"></div></div>
 
 <div id="app">
-<header><b>Acacia POS</b><span class="tag" id="hOrg"></span><span class="tag" id="hShift"></span><span class="sp"></span><span class="tag" id="hNet"></span>
-<button id="bShift">Shift</button><button id="bHeld">Held</button><button id="bToday">Sales</button><button id="bSet">Settings</button><button id="bOut">Sign out</button></header>
+<aside id="side"><div class="brand">Acacia POS</div><span class="tag" id="hNet"></span><span class="tag" id="hShift"></span><span class="sp"></span>
+<button id="bShift">🕒 Shift</button><button id="bHeld">⏸ Held sales</button><button id="bToday">🧾 Sales</button><button id="bPref">🎨 Preferences</button><button id="bSet">⚙️ Settings</button><button id="bOut">⎋ Sign out</button></aside>
+<header><b id="hOrg"></b></header>
 <main>
 <section class="left"><div class="bar"><input id="q" placeholder="Search item or scan SKU, press Enter" autocomplete="off"><select id="wh"></select></div><div id="grid"></div></section>
 <aside class="right">
@@ -70,6 +73,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border-bottom:1p
 <p style="color:#6b7280">Funds, walk-in name, days and footer are shared by every till of this company. Till name and warehouse stay on this device.</p>
 <div class="row"><button class="btn alt" data-x>Close</button><button class="btn" id="sSave" style="flex:1">Save settings</button></div></div></div>
 
+<div class="modal" id="mPref"><div class="box"><h2>Preferences</h2><div data-acacia-appearance></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mToday"><div class="box wide"><h2>Sales today</h2><div id="tdBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mShift"><div class="box"><h2>Shift</h2><div id="shBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
 <div class="modal" id="mHeld"><div class="box"><h2>Held sales</h2><div id="hdBody"></div><div class="row"><button class="btn alt" data-x>Close</button></div></div></div>
@@ -289,6 +293,7 @@ function printReceipt(inv){var o=D.orgInfo||{},c=cfg(),p=inv.pos||{},cn=cur();
   setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove()},2000)},250)}
 
 /* ---------- settings ---------- */
+$("bPref").onclick=function(){open_("mPref");if(window.AcaciaAppearance)window.AcaciaAppearance.mount()};
 $("bSet").onclick=function(){var c=cfg(),w=whList();$("sTill").value=c.till;$("sWh").innerHTML='<option value="">All</option>'+w.map(function(x){return"<option>"+esc(x)+"</option>"}).join("");$("sWh").value=c.wh;$("sWalk").value=c.walk;$("sDays").value=c.days;$("sNeg").value=c.neg?"1":"0";$("sFoot").value=c.foot;
   var b=bankNames();$("sMap").innerHTML=b.length?METHODS.map(function(m){return'<div class="row"><label>'+m+'</label><select data-m="'+m+'"><option value="">— pick fund —</option>'+b.map(function(x){return'<option'+(c.map[m]===x.n?" selected":"")+">"+esc(x.n)+"</option>"}).join("")+"</select></div>"}).join(""):'<p class="warn">No funds found. Add a fund in Acacia Books first.</p>';open_("mSet")};
 $("sSave").onclick=async function(){var map={};document.querySelectorAll("#sMap select").forEach(function(s){if(s.value)map[s.dataset.m]=s.value});
