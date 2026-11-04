@@ -52,10 +52,10 @@ async function loadAll(){
   var keys="warehouses,customers,banks,orgInfo,priceList,appBaseCurrency,appDecimalPlaces,posSettings,posShifts,invoices,posPayments,appAddons,inventory,posItemImages,chartOfAccounts";
   var r1=await rest("company_state?company_id=eq."+encodeURIComponent(S.companyId)+"&select=key,value&key=in.("+keys+")"),a=await r1.json();
   var r2=await rest("company_state?company_id=eq."+encodeURIComponent(S.companyId)+"&select=key,value&key=like."+encodeURIComponent("inventory_*")),b=await r2.json();
-  var n={inv:{}};a.concat(b).forEach(function(x){var v=parse(x.value);if(x.key.indexOf("inventory_")===0)n.inv[x.key.slice(10)]=Array.isArray(v)?v:[];else n[x.key]=v});
+  var n={inv:{},invKey:{}};a.concat(b).forEach(function(x){var v=parse(x.value);if(x.key.indexOf("inventory_")===0){n.inv[x.key.slice(10)]=Array.isArray(v)?v:[];n.invKey[x.key.slice(10)]=x.key}else n[x.key]=v});
   ["warehouses","customers","banks","priceList","invoices","posPayments","posShifts","chartOfAccounts"].forEach(function(k){if(!Array.isArray(n[k]))n[k]=[]});
   if(!n.orgInfo||typeof n.orgInfo!=="object")n.orgInfo={};if(!n.posItemImages||typeof n.posItemImages!=="object"||Array.isArray(n.posItemImages))n.posItemImages={};if(!n.posSettings||typeof n.posSettings!=="object")n.posSettings={};
-  if(Array.isArray(n.inventory)&&n.inventory.length&&!Object.keys(n.inv).length)n.inv.Main=n.inventory;
+  if(Array.isArray(n.inventory)&&n.inventory.length&&!Object.keys(n.inv).length){n.inv.Main=n.inventory;n.invKey.Main="inventory"}
   D=n;
 }
 async function start(){
@@ -79,7 +79,7 @@ function vatInfo(v){v=low(v);if(/exempt/.test(v))return{rate:0,cat:"Exempt"};var
 function price(it,wh){var key=it.sku||it.name,best=null,t=today();(D.priceList||[]).forEach(function(p){if(!p||p.item!==key)return;if(p.warehouse&&wh&&p.warehouse!==wh)return;if(p.effectiveDate&&p.effectiveDate>t)return;if(!best||(p.effectiveDate||"")>=(best.effectiveDate||""))best=p});
   var v=best&&Number(best.sellingPrice)>0?Number(best.sellingPrice):Number(it.sellPrice)||0;return v}
 function pending(){var m={};function add(l){var k=low(l.sku)||low(l.desc);m[k]=(m[k]||0)+(Number(l.qty)||0)}
-  (D.invoices||[]).forEach(function(i){if(i&&i.source==="POS"&&!i.acx)(i.items||[]).forEach(add)});lsg("pos_queue",[]).forEach(function(q){(q.invoice.items||[]).forEach(add)});return m}
+  (D.invoices||[]).forEach(function(i){if(i&&i.source==="POS"&&!i.acx&&!i.stockDone)(i.items||[]).forEach(add)});lsg("pos_queue",[]).forEach(function(q){if(!q.invoice.stockDone)(q.invoice.items||[]).forEach(add)});return m}
 function catalogue(){var out=[],pen=pending(),sel=$("wh").value,t=low(term);
   Object.keys(D.inv).forEach(function(w){if(sel&&w!==sel)return;D.inv[w].forEach(function(it){if(!it||it.active===false||!it.name)return;
     if(t&&low(it.name).indexOf(t)<0&&low(it.sku).indexOf(t)<0)return;
@@ -213,13 +213,29 @@ $("pOk").onclick=async function(){
   var q=lsg("pos_queue",[]);q.push(rec);lss("pos_queue",q);lss("pos_counter_"+S.companyId+"POS"+c.till.replace(/[^A-Za-z0-9]/g,"")+"-",parseInt(no.split("-").pop(),10));
   lastSale={inv:inv,paid:paid,change:change,tendered:paid};
   cart=[];renderCart();close_();$("dTot").textContent=cur()+" "+money(cs.total);$("dChg").textContent=money(change);open_("mDone");$("dNote").textContent="Saving to Acacia Books…";btn.disabled=false;
-  var ok=await flushQueue();$("dNote").textContent=ok?"Saved to Acacia Books. Stock and ledger update when Books next opens.":"No connection. The sale is saved on this device and will upload automatically.";
+  var ok=await flushQueue();$("dNote").textContent=ok?"Saved to Acacia Books. Stock updated; the ledger posts when Books next opens.":"No connection. The sale is saved on this device and will upload automatically.";
 };
 $("dNew").onclick=function(){close_();$("q").focus()};
-$("dPrint").onclick=function(){if(lastSale)printReceipt(lastSale.inv)};
+$("dPrint").onclick=async function(){if(!lastSale)return;try{await flushQueue();await loadAll()}catch(e){}printReceipt(lastSale.inv)};
 var flushing=false;
+/* Stock is taken off in the warehouse the item was sold from, as soon as the sale uploads (same cloud stock Books and Inventory read).
+ * Batches: earliest expiry first, same as Books. Books is told (invoice.stockDone) so it never deducts the same sale again. */
+function deductArr(arr,lines){lines.forEach(function(l){var k=low(l.sku),nm=low(l.desc);
+    var it=arr.filter(function(x){return x&&(k&&x.sku?low(x.sku)===k:low(x.name)===nm)})[0];if(!it)return;
+    var q=Number(l.qty)||0;it.qty=Math.max((parseFloat(it.qty)||0)-q,0);
+    if(Array.isArray(it.batches)&&it.batches.length){var left=q,ex=function(b){return b.expiryDate||b.expiry||""};
+      it.batches.filter(function(b){return(parseFloat(b.qty)||0)>0}).sort(function(x,y){var p=ex(x),r=ex(y);return p||r?p?r?new Date(p)-new Date(r):-1:1:0}).forEach(function(b){if(left<=1e-7)return;var t=Math.min(parseFloat(b.qty)||0,left);b.qty=(parseFloat(b.qty)||0)-t;left-=t})}});
+  return arr}
+function saveRec(r){var qq=lsg("pos_queue",[]);qq.forEach(function(x,i){if(x.invoice.id===r.invoice.id)qq[i]=r});lss("pos_queue",qq)}
+async function deductStock(r){if(r.invoice.stockDone)return;r.stk=r.stk||{};var by={};
+  (r.invoice.items||[]).forEach(function(l){if(l&&(!l.type||low(l.type)==="product")){var w=l.warehouse||"Main";(by[w]=by[w]||[]).push(l)}});
+  for(var w in by){if(r.stk[w])continue;var key=(D.invKey||{})[w];
+    if(key){await mutate(key,function(a){return deductArr(Array.isArray(a)?a:[],by[w])},[])}
+    r.stk[w]=1;saveRec(r)}
+  r.invoice.stockDone=true;saveRec(r)}
 async function flushQueue(){if(flushing||!S)return true;var q=lsg("pos_queue",[]);if(!q.length){hdr();return true}flushing=true;var ok=true;
   try{for(var i=0;i<q.length;i++){var r=q[i];
+    await deductStock(r);
     await mutate("invoices",function(a){a=Array.isArray(a)?a:[];if(!a.some(function(x){return x&&x.id===r.invoice.id}))a.push(r.invoice);return a},[]);
     if(r.pays.length)await mutate("posPayments",function(a){a=Array.isArray(a)?a:[];r.pays.forEach(function(p){if(!a.some(function(x){return x&&x.id===p.id}))a.push(p)});return a},[]);
     var cur2=lsg("pos_queue",[]).filter(function(x){return x.invoice.id!==r.invoice.id});lss("pos_queue",cur2)}
@@ -252,10 +268,15 @@ $("bToday").onclick=function(){var c=cfg(),t=today(),l=(D.invoices||[]).filter(f
   $("tdBody").onclick=function(e){var b=e.target.closest("[data-p]");if(b)printReceipt(l[+b.dataset.p])};open_("mToday")};
 
 /* ---------- receipt ---------- */
-function printReceipt(inv){var o=D.orgInfo||{},c=cfg(),p=inv.pos||{},cn=cur();
+function qrSvg(t){try{var q=qrcode(0,"M");q.addData(String(t));q.make();return q.createSvgTag({cellSize:3,margin:0,scalable:true})}catch(e){return""}}
+function fiscalBlock(inv){var e=inv.etims;
+  if(e&&(e.qrText||inv.qrText)){var t=e.qrText||inv.qrText,svg=qrSvg(t);
+    return"<hr><p><b>KRA eTIMS</b></p>"+(svg?'<div style="width:38mm;margin:4px auto">'+svg+"</div>":"")+(e.controlUnitNo?"<p>Control Unit: "+esc(e.controlUnitNo)+"</p>":"")+(e.invoiceNo?"<p>Fiscal Inv No: "+esc(e.invoiceNo)+"</p>":"")+(e.scuDate?"<p>SCU Date: "+esc(e.scuDate)+"</p>":"")+(e.receiptSignature?'<p style="word-break:break-all">Signature: '+esc(e.receiptSignature)+"</p>":"")+"<p>Scan to verify with KRA</p>"}
+  return"<hr><p>eTIMS QR pending - reprint from Today's sales in a minute</p>"}
+function printReceipt(inv){var fresh=(D.invoices||[]).filter(function(i){return i&&String(i.id)===String(inv.id)})[0];if(fresh)inv=fresh;var o=D.orgInfo||{},c=cfg(),p=inv.pos||{},cn=cur();
   var rows=(inv.items||[]).map(function(l){return'<tr><td colspan="2">'+esc(l.desc)+'</td></tr><tr><td>'+l.qty+" x "+money(l.price)+(l.discount?" (-"+l.discount+"%)":"")+'</td><td class="r">'+money(l.totalWithVat)+"</td></tr>"}).join("");
   var tend=(p.tenders||[]).map(function(t){return'<tr><td>'+esc(t.m)+'</td><td class="r">'+money(t.a)+"</td></tr>"}).join("");
-  var html='<html><head><title>'+esc(inv.invoiceNumber)+'</title><style>body{font:12px monospace;width:72mm;margin:0 auto;padding:4mm}table{width:100%;border-collapse:collapse}td{padding:1px 0}.r{text-align:right}h3,p{text-align:center;margin:2px 0}hr{border:0;border-top:1px dashed #000}</style></head><body><h3>'+esc(o.name||S.companyName)+'</h3><p>'+esc([o.address,o.phone,o.email].filter(Boolean).join(" · "))+'</p>'+(o.kraPin||o.pin?'<p>PIN: '+esc(o.kraPin||o.pin)+'</p>':"")+'<hr><p>'+esc(inv.invoiceNumber)+'</p><p>'+new Date(p.at||Date.now()).toLocaleString()+'</p><p>Cashier: '+esc(p.cashier||"")+' · '+esc(p.till||"")+'</p><p>Customer: '+esc(inv.customer)+'</p><hr><table>'+rows+'</table><hr><table><tr><td>Discount</td><td class="r">'+money(inv.discount)+'</td></tr><tr><td>VAT</td><td class="r">'+money(inv.vat)+'</td></tr><tr><td><b>TOTAL '+cn+'</b></td><td class="r"><b>'+money(inv.totalKES)+'</b></td></tr></table><hr><table>'+tend+'<tr><td>Change</td><td class="r">'+money(p.change)+'</td></tr></table><hr><p>'+esc(c.foot)+'</p></body></html>';
+  var html='<html><head><title>'+esc(inv.invoiceNumber)+'</title><style>body{font:12px monospace;width:72mm;margin:0 auto;padding:4mm}table{width:100%;border-collapse:collapse}td{padding:1px 0}.r{text-align:right}h3,p{text-align:center;margin:2px 0}hr{border:0;border-top:1px dashed #000}</style></head><body><h3>'+esc(o.name||S.companyName)+'</h3><p>'+esc([o.address,o.phone,o.email].filter(Boolean).join(" · "))+'</p>'+(o.kraPin||o.pin?'<p>PIN: '+esc(o.kraPin||o.pin)+'</p>':"")+'<hr><p>'+esc(inv.invoiceNumber)+'</p><p>'+new Date(p.at||Date.now()).toLocaleString()+'</p><p>Cashier: '+esc(p.cashier||"")+' · '+esc(p.till||"")+'</p><p>Customer: '+esc(inv.customer)+'</p><hr><table>'+rows+'</table><hr><table><tr><td>Discount</td><td class="r">'+money(inv.discount)+'</td></tr><tr><td>VAT</td><td class="r">'+money(inv.vat)+'</td></tr><tr><td><b>TOTAL '+cn+'</b></td><td class="r"><b>'+money(inv.totalKES)+'</b></td></tr></table><hr><table>'+tend+'<tr><td>Change</td><td class="r">'+money(p.change)+'</td></tr></table>'+fiscalBlock(inv)+'<hr><p>'+esc(c.foot)+'</p></body></html>';
   var f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";document.body.appendChild(f);f.contentDocument.open();f.contentDocument.write(html);f.contentDocument.close();
   setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove()},2000)},250)}
 
