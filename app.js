@@ -49,11 +49,11 @@ async function login(){
   }catch(x){$("err").textContent="Could not reach Acacia. Check your connection."}finally{$("lb").disabled=false}
 }
 async function loadAll(){
-  var keys="warehouses,customers,banks,orgInfo,priceList,appBaseCurrency,appDecimalPlaces,posSettings,posShifts,invoices,posPayments,appAddons,inventory,posItemImages";
+  var keys="warehouses,customers,banks,orgInfo,priceList,appBaseCurrency,appDecimalPlaces,posSettings,posShifts,invoices,posPayments,appAddons,inventory,posItemImages,chartOfAccounts";
   var r1=await rest("company_state?company_id=eq."+encodeURIComponent(S.companyId)+"&select=key,value&key=in.("+keys+")"),a=await r1.json();
   var r2=await rest("company_state?company_id=eq."+encodeURIComponent(S.companyId)+"&select=key,value&key=like."+encodeURIComponent("inventory_*")),b=await r2.json();
   var n={inv:{}};a.concat(b).forEach(function(x){var v=parse(x.value);if(x.key.indexOf("inventory_")===0)n.inv[x.key.slice(10)]=Array.isArray(v)?v:[];else n[x.key]=v});
-  ["warehouses","customers","banks","priceList","invoices","posPayments","posShifts"].forEach(function(k){if(!Array.isArray(n[k]))n[k]=[]});
+  ["warehouses","customers","banks","priceList","invoices","posPayments","posShifts","chartOfAccounts"].forEach(function(k){if(!Array.isArray(n[k]))n[k]=[]});
   if(!n.orgInfo||typeof n.orgInfo!=="object")n.orgInfo={};if(!n.posItemImages||typeof n.posItemImages!=="object"||Array.isArray(n.posItemImages))n.posItemImages={};if(!n.posSettings||typeof n.posSettings!=="object")n.posSettings={};
   if(Array.isArray(n.inventory)&&n.inventory.length&&!Object.keys(n.inv).length)n.inv.Main=n.inventory;
   D=n;
@@ -156,10 +156,19 @@ document.addEventListener("click",function(e){if(e.target.hasAttribute&&e.target
 /* ---------- payment ---------- */
 var saleType="cash",termsDays=30;
 function addDays(d,n){var x=new Date(d+"T00:00:00");x.setDate(x.getDate()+(Number(n)||0));var p=function(v){return String(v).padStart(2,"0")};return x.getFullYear()+"-"+p(x.getMonth()+1)+"-"+p(x.getDate())}
+/* Sales account: Income accounts from the Books Chart of Accounts, each listed once */
+var INCOME_TYPES=["income","sales","other income","interest income","commission income","service revenue","revenue"];
+function incomeAccounts(){var seen={},out=[];(D.chartOfAccounts||[]).forEach(function(a){if(!a||!a.name)return;var cat=low(a.category),ty=low(a.type);if(!(cat==="income"||cat==="revenue"||INCOME_TYPES.indexOf(ty)>-1))return;var k=low(a.name);if(seen[k])return;seen[k]=1;out.push({name:a.name,code:a.code||""})});return out.sort(function(x,y){return String(x.code||x.name).localeCompare(String(y.code||y.name),undefined,{numeric:true})})}
+function drawAcct(){var list=incomeAccounts(),row=$("pAcctRow");if(!list.length){row.style.display="none";return}
+  var saved=lsg("pos_acct_"+S.companyId,""),want=saved,names=list.map(function(x){return x.name});
+  if(names.indexOf(want)<0){want="";for(var i=0;i<cart.length;i++){if(cart[i].acct&&names.indexOf(cart[i].acct)>-1){want=cart[i].acct;break}}}
+  if(!want){var s=list.filter(function(x){return/sales/i.test(x.name)})[0];want=(s||list[0]).name}
+  $("pAcct").innerHTML=list.map(function(x){return"<option value=\""+esc(x.name)+"\""+(x.name===want?" selected":"")+">"+esc(x.name)+(x.code?" ("+esc(x.code)+")":"")+"</option>"}).join("");row.style.display=""}
+$("pAcct").addEventListener("change",function(){lss("pos_acct_"+S.companyId,this.value)});
 function defBank(m){var c=cfg();return c.map[m]||c.map.Cash||""}
 function bankNames(){return(D.banks||[]).map(function(b,i){return{i:i,n:(b&&(b.name||b.bankName||b.accountName))||("Fund "+(i+1))}})}
 function total(){return r2(calc().total)}
-$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}saleType="cash";termsDays=cfg().days>0?cfg().days:30;tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay();open_("mPay")};
+$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}saleType="cash";termsDays=cfg().days>0?cfg().days:30;tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawAcct();drawPay();open_("mPay")};
 function drawPay(){var t=total(),cr=saleType==="credit";$("pDue").textContent=cur()+" "+money(t);
   document.querySelectorAll("#pType button").forEach(function(b){b.classList.toggle("on",b.dataset.t===saleType)});$("pTermsBox").style.display=cr?"":"none";$("pExact").style.display=cr?"none":"";$("pAdd").textContent=cr?"+ Deposit / part payment":"+ Add payment method";
   var known=["0","7","15","30","45","60","90"],tv=String(termsDays);$("pTerms").value=known.indexOf(tv)>-1?tv:"x";$("pTermsDays").style.display=known.indexOf(tv)>-1?"none":"";if(known.indexOf(tv)<0)$("pTermsDays").value=termsDays;$("pDueOn").textContent=cr?(termsDays>0?"Due on "+addDays(today(),termsDays):"Due on receipt"):"";
@@ -189,7 +198,7 @@ $("pOk").onclick=async function(){
   if(pay.msg)return;var btn=this;btn.disabled=true;var c=cfg(),cs=calc(),t=total(),now=new Date(),date=today(),acctSum=0,paid=0,cashIn=0;
   tenders.forEach(function(x){var a=Number(x.a)||0;if(x.m==="On account")acctSum+=a;else{paid+=a;if(x.m==="Cash")cashIn+=a}});
   var change=pay.change||0,applied=r2(paid-change),no=nextNumber(c.till),acct="";
-  for(var i=0;i<cs.lines.length;i++){if(cs.lines[i]._acct){acct=cs.lines[i]._acct;break}}
+  if($("pAcctRow").style.display!=="none"&&$("pAcct").value)acct=$("pAcct").value;else for(var i=0;i<cs.lines.length;i++){if(cs.lines[i]._acct){acct=cs.lines[i]._acct;break}}
   var credit=saleType==="credit",nd=credit?(termsDays>0?termsDays:0):0,due=addDays(date,nd),got=r2(paid-change),bal=Math.max(r2(cs.total-got),0),st=bal<=0?"Paid":(got>0?"Partial":"Unpaid");acctSum=pay.acct||0;
   var dpl=dp(),id=Number(String(Date.now())+String(Math.floor(Math.random()*90)+10));
   var inv={id:id,invoiceNumber:no,date:date,customer:$("cu").value,netDays:nd,dueDate:due,saleType:credit?"Credit":"Cash",account:acct,salesPerson:S.name,lpo:"",
