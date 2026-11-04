@@ -154,22 +154,31 @@ function open_(id){$(id).classList.add("on")}function close_(){document.querySel
 document.addEventListener("click",function(e){if(e.target.hasAttribute&&e.target.hasAttribute("data-x"))close_()});
 
 /* ---------- payment ---------- */
+var saleType="cash",termsDays=30;
+function addDays(d,n){var x=new Date(d+"T00:00:00");x.setDate(x.getDate()+(Number(n)||0));var p=function(v){return String(v).padStart(2,"0")};return x.getFullYear()+"-"+p(x.getMonth()+1)+"-"+p(x.getDate())}
 function defBank(m){var c=cfg();return c.map[m]||c.map.Cash||""}
 function bankNames(){return(D.banks||[]).map(function(b,i){return{i:i,n:(b&&(b.name||b.bankName||b.accountName))||("Fund "+(i+1))}})}
 function total(){return r2(calc().total)}
-$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay();open_("mPay")};
-function drawPay(){var t=total();$("pDue").textContent=cur()+" "+money(t);
-  $("pRows").innerHTML=tenders.map(function(x,i){return'<div class="tender"><select data-i="'+i+'" data-k="m">'+METHODS.concat(["On account"]).map(function(m){return'<option'+(m===x.m?" selected":"")+">"+m+"</option>"}).join("")+'</select><input type="number" step="any" min="0" data-i="'+i+'" data-k="a" value="'+x.a+'">'+(x.m==="Cash"||x.m==="On account"?"":'<input data-i="'+i+'" data-k="ref" placeholder="Reference" value="'+esc(x.ref)+'">')+(x.m==="On account"?"":'<select class="fund" data-i="'+i+'" data-k="b"><option value="">— Fund / bank —</option>'+bankNames().map(function(b){return'<option'+(b.n===x.b?" selected":"")+">"+esc(b.n)+"</option>"}).join("")+"</select>")+'<button class="q" data-rm="'+i+'">✕</button></div>'}).join("");sumPay()}
-function sumPay(){var t=total(),paid=0,cashIn=0,acct=0;tenders.forEach(function(x){var a=Number(x.a)||0;if(x.m==="On account")acct+=a;else{paid+=a;if(x.m==="Cash")cashIn+=a}});
-  var change=Math.max(r2(paid-(t-acct)),0),msg="";if(change>cashIn)msg="Only cash can give change.";
-  var short=r2(t-paid-acct);if(short>0)msg="Short by "+money(short);if(acct>0&&low($("cu").value)===low(cfg().walk))msg="Pick a named customer for sales on account.";
-  if(!msg&&bankNames().length){var nf=tenders.filter(function(x){return x.m!=="On account"&&(Number(x.a)||0)>0&&!x.b})[0];if(nf)msg="Pick the fund / bank for "+nf.m}
-  $("pPaid").textContent=money(paid+acct);$("pChg").textContent=money(change);$("pMsg").textContent=msg;$("pOk").disabled=!!msg;pay.change=change;pay.msg=msg}
+$("bPay").onclick=function(){if(!cart.length)return;if(!shiftOpen()){toast("Open a shift first (Shift button)");return}saleType="cash";termsDays=cfg().days>0?cfg().days:30;tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay();open_("mPay")};
+function drawPay(){var t=total(),cr=saleType==="credit";$("pDue").textContent=cur()+" "+money(t);
+  document.querySelectorAll("#pType button").forEach(function(b){b.classList.toggle("on",b.dataset.t===saleType)});$("pTermsBox").style.display=cr?"":"none";$("pExact").style.display=cr?"none":"";$("pAdd").textContent=cr?"+ Deposit / part payment":"+ Add payment method";
+  var known=["0","7","15","30","45","60","90"],tv=String(termsDays);$("pTerms").value=known.indexOf(tv)>-1?tv:"x";$("pTermsDays").style.display=known.indexOf(tv)>-1?"none":"";if(known.indexOf(tv)<0)$("pTermsDays").value=termsDays;$("pDueOn").textContent=cr?(termsDays>0?"Due on "+addDays(today(),termsDays):"Due on receipt"):"";
+  $("pRows").innerHTML=tenders.map(function(x,i){return'<div class="tender"><select data-i="'+i+'" data-k="m">'+METHODS.map(function(m){return'<option'+(m===x.m?" selected":"")+">"+m+"</option>"}).join("")+'</select><input type="number" step="any" min="0" data-i="'+i+'" data-k="a" value="'+x.a+'">'+(x.m==="Cash"?"":'<input data-i="'+i+'" data-k="ref" placeholder="Reference" value="'+esc(x.ref)+'">')+('<select class="fund" data-i="'+i+'" data-k="b"><option value="">— Fund / bank —</option>'+bankNames().map(function(b){return'<option'+(b.n===x.b?" selected":"")+">"+esc(b.n)+"</option>"}).join("")+"</select>")+'<button class="q" data-rm="'+i+'">✕</button></div>'}).join("");sumPay()}
+function sumPay(){var t=total(),paid=0,cashIn=0,cr=saleType==="credit";
+  tenders.forEach(function(x){var v=Number(x.a)||0;paid+=v;if(x.m==="Cash")cashIn+=v});
+  var acct=cr?Math.max(r2(t-paid),0):0,change=cr?0:Math.max(r2(paid-t),0),msg="";
+  if(!cr){if(change>cashIn)msg="Only cash can give change.";var sh=r2(t-paid);if(sh>0)msg="Short by "+money(sh)}
+  else{if(r2(paid-t)>0)msg="Deposit is more than the total";if(low($("cu").value)===low(cfg().walk))msg="Pick a named customer for a credit sale.";if(!(termsDays>=0))msg="Enter the terms in days"}
+  if(!msg&&bankNames().length){var nf=tenders.filter(function(x){return(Number(x.a)||0)>0&&!x.b})[0];if(nf)msg="Pick the bank / fund from Books for "+nf.m}
+  $("pLbl").textContent=cr?"On account":"Change";$("pPaid").textContent=money(paid);$("pChg").textContent=money(cr?acct:change);$("pMsg").textContent=msg;$("pOk").disabled=!!msg;pay.change=change;pay.acct=acct;pay.msg=msg}
 var pay={};
 $("pRows").addEventListener("input",function(e){var t=e.target,x=tenders[+t.dataset.i];if(!x)return;x[t.dataset.k]=t.dataset.k==="a"?parseFloat(t.value)||0:t.value;sumPay()});
-$("pRows").addEventListener("change",function(e){var t=e.target;if(t.dataset.k==="m"){tenders[+t.dataset.i].m=t.value;tenders[+t.dataset.i].b=t.value==="On account"?"":defBank(t.value);drawPay()}});
-$("pRows").addEventListener("click",function(e){var b=e.target.closest("[data-rm]");if(b){tenders.splice(+b.dataset.rm,1);if(!tenders.length)tenders=[{m:"Cash",a:0,ref:"",b:defBank("Cash")}];drawPay()}});
-$("pAdd").onclick=function(){var paid=tenders.reduce(function(s,x){return s+(Number(x.a)||0)},0);tenders.push({m:"M-Pesa",a:Math.max(r2(total()-paid),0),ref:"",b:defBank("M-Pesa")});drawPay()};
+$("pRows").addEventListener("change",function(e){var t=e.target;if(t.dataset.k==="m"){tenders[+t.dataset.i].m=t.value;tenders[+t.dataset.i].b=defBank(t.value);drawPay()}});
+$("pRows").addEventListener("click",function(e){var b=e.target.closest("[data-rm]");if(b){tenders.splice(+b.dataset.rm,1);if(!tenders.length&&saleType!=="credit")tenders=[{m:"Cash",a:0,ref:"",b:defBank("Cash")}];drawPay()}});
+$("pAdd").onclick=function(){var paid=tenders.reduce(function(s,x){return s+(Number(x.a)||0)},0);tenders.push({m:saleType==="credit"?"Cash":"M-Pesa",a:saleType==="credit"?0:Math.max(r2(total()-paid),0),ref:"",b:defBank(saleType==="credit"?"Cash":"M-Pesa")});drawPay()};
+$("pType").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;saleType=b.dataset.t;if(saleType==="credit"){tenders=[];if(!(termsDays>0))termsDays=cfg().days>0?cfg().days:30}else{tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}]}drawPay()});
+$("pTerms").addEventListener("change",function(){if(this.value==="x"){$("pTermsDays").style.display="";$("pTermsDays").focus();termsDays=parseInt($("pTermsDays").value,10)||0}else termsDays=parseInt(this.value,10);drawPay()});
+$("pTermsDays").addEventListener("input",function(){termsDays=parseInt(this.value,10);$("pDueOn").textContent=termsDays>0?"Due on "+addDays(today(),termsDays):"Due on receipt";sumPay()});
 $("pExact").onclick=function(){tenders=[{m:"Cash",a:total(),ref:"",b:defBank("Cash")}];drawPay()};
 
 /* ---------- sale ---------- */
@@ -181,11 +190,12 @@ $("pOk").onclick=async function(){
   tenders.forEach(function(x){var a=Number(x.a)||0;if(x.m==="On account")acctSum+=a;else{paid+=a;if(x.m==="Cash")cashIn+=a}});
   var change=pay.change||0,applied=r2(paid-change),no=nextNumber(c.till),acct="";
   for(var i=0;i<cs.lines.length;i++){if(cs.lines[i]._acct){acct=cs.lines[i]._acct;break}}
+  var credit=saleType==="credit",nd=credit?(termsDays>0?termsDays:0):0,due=addDays(date,nd),got=r2(paid-change),bal=Math.max(r2(cs.total-got),0),st=bal<=0?"Paid":(got>0?"Partial":"Unpaid");acctSum=pay.acct||0;
   var dpl=dp(),id=Number(String(Date.now())+String(Math.floor(Math.random()*90)+10));
-  var inv={id:id,invoiceNumber:no,date:date,customer:$("cu").value,netDays:acctSum>0?c.days:0,dueDate:date,account:acct,salesPerson:S.name,lpo:"",
+  var inv={id:id,invoiceNumber:no,date:date,customer:$("cu").value,netDays:nd,dueDate:due,saleType:credit?"Credit":"Cash",account:acct,salesPerson:S.name,lpo:"",
     items:cs.lines.map(function(l){var o=Object.assign({},l);delete o._acct;return o}),total:cs.total.toFixed(dpl),discount:cs.dis.toFixed(dpl),vat:cs.vat.toFixed(dpl),
-    salesGeneral:cs.gen.toFixed(dpl),salesOther:cs.oth.toFixed(dpl),salesZero:cs.zero.toFixed(dpl),salesExempt:cs.ex.toFixed(dpl),currency:cur(),exchangeRate:1,totalKES:r2(cs.total),paid:false,status:"Unpaid",source:"POS",
-    pos:{till:c.till,cashier:S.name,at:now.toISOString(),tenders:tenders.map(function(x){return{m:x.m,a:Number(x.a)||0,ref:x.ref||"",bank:x.b||""}}),change:change}};
+    salesGeneral:cs.gen.toFixed(dpl),salesOther:cs.oth.toFixed(dpl),salesZero:cs.zero.toFixed(dpl),salesExempt:cs.ex.toFixed(dpl),currency:cur(),exchangeRate:1,totalKES:r2(cs.total),paid:st==="Paid",status:st,amountPaid:got,balance:bal,source:"POS",
+    pos:{saleType:credit?"Credit":"Cash",till:c.till,cashier:S.name,at:now.toISOString(),tenders:tenders.map(function(x){return{m:x.m,a:Number(x.a)||0,ref:x.ref||"",bank:x.b||""}}),change:change}};
   if(acctSum>0&&paid>0){}
   var pays=[],left=applied;
   tenders.forEach(function(x,i){if(x.m==="On account")return;var a=Number(x.a)||0;if(x.m==="Cash")a=Math.max(r2(a-change),0);if(a<=0)return;a=Math.min(a,left);left=r2(left-a);

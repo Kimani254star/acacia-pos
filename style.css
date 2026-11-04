@@ -90,3 +90,5 @@ html[data-theme="dark"]{--pc-bg:#0e1627;--pc-card:#17120d;--pc-line:#4a3a22;--pc
 #rrail #rrTog{align-self:flex-start;padding:2px 9px;font-size:16px;font-weight:700}
 #rrail.min{width:38px;padding:6px 3px}#rrail.min .rr-list{display:none}#rrail.min #rrTog{transform:rotate(180deg)}
 @media(max-width:820px){#app{grid-template-columns:1fr}#rrail{grid-row:auto;grid-column:auto;order:9;flex-direction:row;width:auto;max-height:none}#rrail .rr-list{flex-direction:row;flex-wrap:wrap;margin:0;gap:4px}#rrail.min{width:auto}#rrail.min #rrTog{transform:none}}
+
+.seg{display:flex;gap:0;margin:0 0 12px;border:1px solid var(--acc);border-radius:8px;overflow:hidden}.seg button{flex:1;border:0;padding:10px;background:var(--card);color:var(--acc);font-weight:700}.seg button.on{background:var(--acc);color:#fff}.mut{color:var(--mut);font-size:12px;margin:-2px 0 8px}

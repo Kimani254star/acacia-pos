@@ -27,7 +27,9 @@
 <button type="button" data-bk="">📔 Notebook</button><button type="button" data-bk="">🎥 Webinar</button><button type="button" data-bk="">🌳 Team Status</button><button type="button" data-bk="meet.html">📹 Meet</button><button type="button" data-bk="acacia-docs.html">📝 Docs</button><button type="button" data-bk="acacia-sheets.html">📊 Sheets</button><button type="button" data-bk="acacia-photos.html">📸 Photos</button><button type="button" data-bk="acacia-calendar.html">📅 Calendar</button><button type="button" data-bk="">🏢 Organization Details</button></div></aside>
 </div>
 
-<div class="modal" id="mPay"><div class="box"><h2>Payment</h2><div>Amount due</div><div class="due" id="pDue"></div><div id="pRows"></div>
+<div class="modal" id="mPay"><div class="box"><h2>Payment</h2><div class="seg" id="pType"><button type="button" data-t="cash" class="on">Cash sale</button><button type="button" data-t="credit">Credit sale</button></div>
+<div id="pTermsBox" style="display:none"><div class="row"><label>Terms (days)</label><select id="pTerms"><option value="0">Due on receipt</option><option value="7">Net 7</option><option value="15">Net 15</option><option value="30">Net 30</option><option value="45">Net 45</option><option value="60">Net 60</option><option value="90">Net 90</option><option value="x">Other…</option></select><input id="pTermsDays" type="number" min="0" placeholder="days" style="display:none;max-width:90px"></div><div class="mut" id="pDueOn"></div></div>
+<div>Amount due</div><div class="due" id="pDue"></div><div id="pRows"></div>
 <div class="row"><button class="btn alt" id="pAdd">+ Add payment method</button><button class="btn alt" id="pExact">Exact cash</button></div>
 <div class="row"><label>Paid</label><b id="pPaid"></b></div><div class="row"><label id="pLbl">Change</label><span class="chg" id="pChg"></span></div><div id="pMsg" class="warn"></div>
 <div class="row"><button class="btn alt" data-x>Cancel</button><button class="btn gold" id="pOk" style="flex:1;padding:12px">Complete sale</button></div></div></div>
