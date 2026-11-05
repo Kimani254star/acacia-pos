@@ -132,7 +132,7 @@ function calc(){var sub=0,dis=0,vat=0,gen=0,oth=0,zero=0,ex=0;
   return{lines:lines,sub:sub,dis:dis,vat:vat,total:sub-dis+vat,gen:gen,oth:oth,zero:zero,ex:ex}}
 function renderCart(){var c=calc();
   $("cart").innerHTML=cart.length?cart.map(function(l,i){var t=c.lines[i];return'<div class="line"><span class="t">'+esc(l.name)+'</span><span class="a">'+money(t.totalWithVat)+'</span><div class="c"><button class="q" data-a="m" data-i="'+i+'">−</button><input class="qty" type="number" min="0" step="any" value="'+l.qty+'" data-a="q" data-i="'+i+'"><button class="q" data-a="p" data-i="'+i+'">+</button>× '+money(l.price)+' <input class="dsc" type="number" min="0" max="100" value="'+l.disc+'" data-a="d" data-i="'+i+'" title="Discount %">% off'+(l.rate?" · VAT "+l.rate+"%":"")+' <button class="q" data-a="x" data-i="'+i+'" title="Remove">✕</button></div></div>'}).join(""):'<div class="empty">Tap an item or scan a SKU to start a sale.</div>';
-  $("tSub").textContent=money(c.sub);$("tDis").textContent=money(c.dis);$("tVat").textContent=money(c.vat);$("tTot").textContent=cur()+" "+money(c.total);$("bPay").disabled=!cart.length}
+  $("tSub").textContent=money(c.sub);$("tDis").textContent=money(c.dis);$("tVat").textContent=money(c.vat);$("tTot").textContent=cur()+" "+money(c.total);$("bPay").disabled=!cart.length;var sb=$("bSell");if(sb)sb.textContent="🛒 Sell"+(cart.length?" ("+cart.length+")":"")}
 $("cart").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.dataset.i,l=cart[i];if(!l)return;var a=b.dataset.a;
   if(a==="x")cart.splice(i,1);else if(a==="p"){if(!cfg().neg&&l.qty+1>l.have){toast("Only "+Math.max(l.have,0)+" in stock");return}l.qty++}else if(a==="m"){l.qty--;if(l.qty<=0)cart.splice(i,1)}renderCart()});
 $("cart").addEventListener("change",function(e){var t=e.target,i=+t.dataset.i,l=cart[i];if(!l)return;var v=parseFloat(t.value)||0;
@@ -147,7 +147,7 @@ $("bClr").onclick=function(){if(cart.length&&confirm("Clear this sale?")){cart=[
 $("bHold").onclick=function(){if(!cart.length)return;var h=lsg("pos_held",[]);h.push({id:Date.now(),at:new Date().toISOString(),customer:$("cu").value,cart:cart});lss("pos_held",h);cart=[];renderCart();toast("Sale held")};
 $("bHeld").onclick=function(){var h=lsg("pos_held",[]);$("hdBody").innerHTML=h.length?h.map(function(x){return'<div class="row"><span style="flex:1">'+new Date(x.at).toLocaleTimeString()+" · "+x.cart.length+" line(s) · "+esc(x.customer)+'</span><button class="btn" data-r="'+x.id+'">Recall</button><button class="btn alt" data-d="'+x.id+'">Delete</button></div>'}).join(""):'<div class="empty">Nothing on hold.</div>';open_("mHeld")};
 $("hdBody").onclick=function(e){var b=e.target.closest("button");if(!b)return;var h=lsg("pos_held",[]),id=b.dataset.r||b.dataset.d,x=h.find(function(z){return String(z.id)===id});if(!x)return;
-  if(b.dataset.r){if(cart.length&&!confirm("Replace the current sale?"))return;cart=x.cart;$("cu").value=x.customer;close_()}lss("pos_held",h.filter(function(z){return z!==x}));renderCart();if(!b.dataset.r)$("bHeld").onclick()};
+  if(b.dataset.r){if(cart.length&&!confirm("Replace the current sale?"))return;cart=x.cart;$("cu").value=x.customer;close_();setView("sell")}lss("pos_held",h.filter(function(z){return z!==x}));renderCart();if(!b.dataset.r)$("bHeld").onclick()};
 
 /* ---------- modals ---------- */
 function open_(id){$(id).classList.add("on")}function close_(){document.querySelectorAll(".modal.on").forEach(function(m){m.classList.remove("on")})}
@@ -247,7 +247,7 @@ window.addEventListener("online",function(){flushQueue()});
 /* ---------- shifts ---------- */
 function myShift(){var c=cfg();return(D.posShifts||[]).find(function(s){return s&&!s.closedAt&&s.till===c.till})}
 function shiftOpen(){return!!myShift()}
-function hdr(){var s=myShift(),q=lsg("pos_queue",[]).length;$("hShift").textContent=s?("Shift open · "+cfg().till):"No shift open";$("hNet").textContent=q?q+" waiting to upload":(navigator.onLine?"Online":"Offline")}
+function hdr(){var s=myShift(),q=lsg("pos_queue",[]).length;$("hShift").textContent=s?("Shift open · "+cfg().till):"No shift open";$("hNet").textContent=q?q+" waiting to upload":(navigator.onLine?"Online":"Offline");renderDash()}
 function shiftSales(s){return(D.invoices||[]).filter(function(i){return i&&i.source==="POS"&&i.pos&&i.pos.till===s.till&&i.pos.at>=s.openedAt&&(!s.closedAt||i.pos.at<=s.closedAt)})}
 function cashIn(list){var t=0;list.forEach(function(i){var cash=0,tend=0;(i.pos.tenders||[]).forEach(function(x){if(x.m==="Cash")cash+=Number(x.a)||0});t+=cash-(Number(i.pos.change)||0)});return r2(t)}
 $("bShift").onclick=function(){var s=myShift(),h="";
@@ -279,6 +279,69 @@ function printReceipt(inv){var fresh=(D.invoices||[]).filter(function(i){return 
   var html='<html><head><title>'+esc(inv.invoiceNumber)+'</title><style>body{font:12px monospace;width:72mm;margin:0 auto;padding:4mm}table{width:100%;border-collapse:collapse}td{padding:1px 0}.r{text-align:right}h3,p{text-align:center;margin:2px 0}hr{border:0;border-top:1px dashed #000}</style></head><body><h3>'+esc(o.name||S.companyName)+'</h3><p>'+esc([o.address,o.phone,o.email].filter(Boolean).join(" · "))+'</p>'+(o.kraPin||o.pin?'<p>PIN: '+esc(o.kraPin||o.pin)+'</p>':"")+'<hr><p>'+esc(inv.invoiceNumber)+'</p><p>'+new Date(p.at||Date.now()).toLocaleString()+'</p><p>Cashier: '+esc(p.cashier||"")+' · '+esc(p.till||"")+'</p><p>Customer: '+esc(inv.customer)+'</p><hr><table>'+rows+'</table><hr><table><tr><td>Discount</td><td class="r">'+money(inv.discount)+'</td></tr><tr><td>VAT</td><td class="r">'+money(inv.vat)+'</td></tr><tr><td><b>TOTAL '+cn+'</b></td><td class="r"><b>'+money(inv.totalKES)+'</b></td></tr></table><hr><table>'+tend+'<tr><td>Change</td><td class="r">'+money(p.change)+'</td></tr></table>'+fiscalBlock(inv)+'<hr><p>'+esc(c.foot)+'</p></body></html>';
   var f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";document.body.appendChild(f);f.contentDocument.open();f.contentDocument.write(html);f.contentDocument.close();
   setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove()},2000)},250)}
+
+/* ---------- dashboard (left sidebar > Dashboard) ---------- */
+var dq="",dfilter="all";
+var BKURL=(window.ACACIA_BOOKS_URL||"https://acacia-books.vercel.app/").replace(/\/?$/,"/");
+/* Other Acacia apps shown on the Dashboard. Override with window.ACACIA_APPS=[{n:"Name",i:"emoji",u:"https://..."}] in config.js */
+function appList(){return Array.isArray(window.ACACIA_APPS)&&window.ACACIA_APPS.length?window.ACACIA_APPS:[
+  {n:"Acacia Books",i:"📚",u:BKURL,s:"Accounts & reports"},
+  {n:"Inventory",i:"📦",u:"https://inventory-navy-zeta.vercel.app/",s:"Stock balancing"},
+  {n:"Sales",i:"💼",u:"https://sales-xi-cyan.vercel.app/#revenue",s:"Sales & distribution"},
+  {n:"Expenses",i:"💳",u:"https://expenses-jade-xi.vercel.app/",s:"Expense & ledger"},
+  {n:"CRM",i:"🤝",u:"https://acacia-crm.vercel.app/?from=books#dashboard",s:"Customers & engagement"},
+  {n:"Mail",i:"✉️",u:"https://acacia-mail.vercel.app/",s:"Secure mail"},
+  {n:"Payroll",i:"👥",u:"https://payroll-gamma.vercel.app/",s:"Payroll & compensation"},
+  {n:"Projects",i:"🗂️",u:"https://project-hub-gamma-woad.vercel.app/",s:"Project hub"},
+  {n:"Plans",i:"📋",u:"https://plans-psi-ten.vercel.app/",s:"Plans"}]}
+function setView(v){v=v==="sell"?"sell":"dash";$("app").classList.toggle("v-dash",v==="dash");$("bDash").classList.toggle("on",v==="dash");$("bSell").classList.toggle("on",v==="sell");lss("pos_view",v);if(v==="dash")renderDash()}
+function dashStock(){var pen=pending(),m={},keys=[];
+  Object.keys(D.inv||{}).forEach(function(w){D.inv[w].forEach(function(it){if(!it||it.active===false||!it.name)return;var k=low(it.sku)||low(it.name);if(!(k in m)){m[k]=0;keys.push(k)}m[k]+=(Number(it.qty)||0)});});
+  var out=0,lw=0;keys.forEach(function(k){var h=m[k]-(pen[k]||0);if(h<=0)out++;else if(h<=5)lw++});
+  return{n:keys.length,out:out,low:lw}}
+function dashKpi(){var t=today(),sl=(D.invoices||[]).filter(function(i){return i&&i.source==="POS"&&i.date===t}),
+    tot=sl.reduce(function(a,i){return a+(Number(i.totalKES)||0)},0),sh=myShift(),held=lsg("pos_held",[]).length,q=lsg("pos_queue",[]).length,st=dashStock(),c=cfg();
+  $("dTitle").textContent=(D.orgInfo&&D.orgInfo.name)||S.companyName;
+  $("dSub").textContent="Till "+c.till+" · "+S.name+" · "+(q?q+" waiting to upload":(navigator.onLine?"Online":"Offline"));
+  var drawer=sh?r2((Number(sh.openingFloat)||0)+cashIn(shiftSales(sh))):0;
+  $("dKpi").innerHTML=
+    '<div class="dk"><div class="l">Sales today</div><div class="v">'+cur()+' '+money(tot)+'</div><div class="s">'+sl.length+(sl.length===1?' sale':' sales')+'</div></div>'
+   +'<div class="dk"><div class="l">Shift</div><div class="v">'+(sh?'Open':'Closed')+'</div><div class="s">'+(sh?'Cash expected in drawer: '+money(drawer):'<span class="warn">Open a shift to start selling</span>')+'</div></div>'
+   +'<div class="dk"><div class="l">Products</div><div class="v">'+st.n+'</div><div class="s">'+st.out+' out of stock · '+st.low+' low</div></div>'
+   +'<div class="dk"><div class="l">Held sales</div><div class="v">'+held+'</div><div class="s">'+(cart.length?cart.length+' line(s) in the current sale':'Current sale is empty')+'</div></div>'}
+function dashProds(){var t0=term;term=dq;var all=catalogue();term=t0;
+  if(dfilter==="low")all=all.filter(function(x){return x.have>0&&x.have<=5});else if(dfilter==="out")all=all.filter(function(x){return x.have<=0});
+  var list=all.slice(0,60);
+  $("dCount").textContent=all.length>list.length?"Showing "+list.length+" of "+all.length+" products":all.length+(all.length===1?" product":" products");
+  $("dProds").innerHTML=list.length?list.map(function(x,i){var it=x.it,im=itemImg(it),
+      tag=x.have<=0?'<span class="st out">Out of stock</span>':x.have<=5?'<span class="st low">Only '+x.have+' left</span>':'<span class="st ok">'+x.have+' in stock</span>';
+    return'<button type="button" class="dp" data-i="'+i+'"><div class="im">'+(im?'<img loading="lazy" alt="" src="'+esc(im)+'">':'<span class="ini">'+esc(initials(it.name))+'</span>')+'</div><div class="bd"><span class="n">'+esc(it.name)+'</span><span class="pr">'+pfmt(x.price)+'</span>'+tag+'</div></button>'}).join(""):'<div class="empty">No products found.</div>';
+  dashProds.list=list;
+  document.querySelectorAll("#dChips button").forEach(function(b){b.classList.toggle("on",b.dataset.f===dfilter)})}
+function renderDash(){var d=$("dash");if(!S||!d||!$("dKpi")||!$("app").classList.contains("v-dash"))return;
+  try{dashKpi();dashProds()}catch(e){}}
+(function(){var d=$("dash");if(!d)return;
+  d.innerHTML='<div class="dh"><div><h2 id="dTitle">Dashboard</h2><div class="dsub" id="dSub"></div></div><button type="button" class="btn gold" data-go="sell">🛒 Start selling</button></div>'
+   +'<div class="dkpi" id="dKpi"></div>'
+   +'<h3 class="dsec">Modules</h3><div class="dtiles">'
+   +'<button type="button" class="tile main" data-go="sell"><span class="ic">🛒</span><b>Point of sale</b><small>Sell and take payment</small></button>'
+   +'<button type="button" class="tile" data-go="shift"><span class="ic">🕒</span><b>Shift</b><small>Open or close shift</small></button>'
+   +'<button type="button" class="tile" data-go="held"><span class="ic">⏸</span><b>Held sales</b><small>Recall a held sale</small></button>'
+   +'<button type="button" class="tile" data-go="sales"><span class="ic">🧾</span><b>Sales</b><small>Today\'s sales and receipts</small></button>'
+   +'<button type="button" class="tile" data-go="pref"><span class="ic">🎨</span><b>Preferences</b><small>Theme and appearance</small></button>'
+   +'<button type="button" class="tile" data-go="set"><span class="ic">⚙️</span><b>Settings</b><small>Till, warehouse, funds</small></button></div>'
+   +'<h3 class="dsec">Acacia apps</h3><div class="dtiles">'+appList().map(function(a){return'<a class="tile" href="'+esc(a.u)+'" target="_blank" rel="noopener"><span class="ic">'+esc(a.i||"🔗")+'</span><b>'+esc(a.n)+'</b><small>'+esc(a.s||"Open in a new tab")+'</small></a>'}).join("")+'</div>'
+   +'<div class="dprodhead"><h3 class="dsec">Products</h3><div class="dchips" id="dChips"><button type="button" data-f="all" class="on">All</button><button type="button" data-f="low">Low stock</button><button type="button" data-f="out">Out of stock</button></div><input id="dQ" type="search" placeholder="Search products" autocomplete="off" aria-label="Search products"></div>'
+   +'<div class="count" id="dCount"></div><div class="dgrid" id="dProds"></div>';
+  var go={sell:function(){setView("sell")},shift:function(){$("bShift").click()},held:function(){$("bHeld").click()},sales:function(){$("bToday").click()},pref:function(){$("bPref").click()},set:function(){$("bSet").click()}};
+  d.addEventListener("click",function(e){
+    var g=e.target.closest("[data-go]");if(g){var f=go[g.dataset.go];if(f)f();return}
+    var c=e.target.closest("#dChips button");if(c){dfilter=c.dataset.f;dashProds();return}
+    var p=e.target.closest(".dp");if(p){var x=(dashProds.list||[])[+p.dataset.i];if(x){var n0=cart.length,q0=cart.reduce(function(s,l){return s+l.qty},0);addToCart(x);if(cart.reduce(function(s,l){return s+l.qty},0)>q0)toast("Added "+x.it.name+" to the sale");dashKpi()}}});
+  $("dQ").addEventListener("input",function(){dq=this.value;dashProds()});
+  $("bDash").onclick=function(){setView("dash")};$("bSell").onclick=function(){setView("sell")};
+  setView(lsg("pos_view","dash"));
+})();
 
 /* ---------- settings ---------- */
 $("bPref").onclick=function(){open_("mPref");if(window.AcaciaAppearance)window.AcaciaAppearance.mount()};

@@ -19,3 +19,10 @@ Preferences > Theme: Automatic (follows the device), Light or Dark. Saved on eac
 
 RIGHT TOOLS RAIL
 Same right-side rail as Acacia Books (Notebook, Webinar, Team Status, Meet, Docs, Sheets, Photos, Calendar, Organization Details). Meet/Docs/Sheets/Photos/Calendar open the Books pages; the other four open Acacia Books. Change the Books address with window.ACACIA_BOOKS_URL in config.js. The arrow at the top of the rail hides/shows it.
+
+
+DASHBOARD
+The first button in the left sidebar is now Dashboard (it is the page POS opens on; the last page used is remembered on each device). It shows today's sales, shift status, product and stock counts, held sales, tiles for the POS modules (Point of sale, Shift, Held sales, Sales, Preferences, Settings), tiles that open the other Acacia apps in a new tab, and the product list (search, Low stock, Out of stock; click a product to add it to the sale). "Sell" in the sidebar (or Start selling) opens the selling screen with the cart.
+To change the app tiles, add this to config.js:
+  window.ACACIA_APPS=[{n:"Acacia Books",i:"📚",u:"https://acacia-books.vercel.app/",s:"Accounts"}];
+No new SQL. Files changed: index.html, style.css, app.js, README.txt.
