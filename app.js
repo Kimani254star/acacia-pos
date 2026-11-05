@@ -344,7 +344,6 @@ function renderDash(){var d=$("dash");if(!S||!d||!$("dKpi")||!$("app").classList
    +'<h3 class="dsec">Modules</h3><div class="dtiles">'
    +'<button type="button" class="tile main" data-go="sell"><span class="ic">🛒</span><b>Point of sale</b><small>Sell and take payment</small></button>'
    +'</div>'
-   +'<h3 class="dsec">Acacia apps</h3><div class="dtiles">'+appList().map(function(a){return'<a class="tile" href="'+esc(a.u)+'" target="_blank" rel="noopener"><span class="ic">'+esc(a.i||"🔗")+'</span><b>'+esc(a.n)+'</b><small>'+esc(a.s||"Open in a new tab")+'</small></a>'}).join("")+'</div>'
    +'<div class="dprodhead"><h3 class="dsec">Products</h3><div class="dchips" id="dChips"><button type="button" data-f="all" class="on">All</button><button type="button" data-f="low">Low stock</button><button type="button" data-f="out">Out of stock</button></div><input id="dQ" type="search" placeholder="Search products" autocomplete="off" aria-label="Search products"></div>'
    +'<div class="count" id="dCount"></div><div class="dgrid" id="dProds"></div>';
   var go={sell:function(){setView("sell")},shift:function(){$("bShift").click()},held:function(){$("bHeld").click()},sales:function(){$("bToday").click()},pref:function(){$("bPref").click()},set:function(){$("bSet").click()}};
@@ -375,3 +374,11 @@ document.getElementById("rrTog").onclick=function(){var m=rr.classList.toggle("m
 rr.querySelectorAll("[data-bk]").forEach(function(b){b.onclick=function(){var w=window.open(BK+b.getAttribute("data-bk"),"_blank");if(!w)alert("Popup blocked! Please allow pop-ups for this site.")}})})();
 })();
 
+
+/* highlight the sidebar button of the module that is open */
+(function(){var m={mShift:"bShift",mHeld:"bHeld",mToday:"bToday",mRep:"bRep",mPref:"bPref",mSet:"bSet"};
+function sync(){var open=null;Object.keys(m).forEach(function(k){var e=$(k);if(e&&e.classList.contains("on"))open=m[k]});
+  Object.keys(m).forEach(function(k){var b=$(m[k]);if(b)b.classList.toggle("on",m[k]===open)});
+  var v=document.getElementById("app").classList.contains("v-dash");$("bDash").classList.toggle("on",!open&&v);$("bSell").classList.toggle("on",!open&&!v)}
+Object.keys(m).forEach(function(k){var e=$(k);if(e)new MutationObserver(sync).observe(e,{attributes:true,attributeFilter:["class"]})});
+})();

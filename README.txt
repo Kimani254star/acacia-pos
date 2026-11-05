@@ -31,3 +31,9 @@ No new SQL. Files changed: index.html, style.css, app.js, README.txt.
 REPORTS
 The left sidebar keeps Shift, Held sales, Sales, Preferences and Settings, and has a new Reports button (after Sales). Reports shows sales, payment methods, daily totals and top items for Today, 7 days, 30 days or any date range. The module tiles (Shift, Held sales, Sales, Preferences, Settings) were removed from the Dashboard; only Point of sale remains there.
 Files changed: index.html, style.css, app.js, README.txt.
+
+MODULE PAGES
+Shift, Held sales, Sales, Reports, Preferences and Settings now open as a full page beside the sidebar showing only that module's details (no dashboard or cart behind it). Close returns to where you were; the open module is highlighted in the sidebar.
+Files changed: style.css, app.js, README.txt.
+
+The "Acacia apps" tiles were removed from the Dashboard. Files changed: app.js, README.txt.
