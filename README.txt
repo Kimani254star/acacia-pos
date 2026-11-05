@@ -26,3 +26,8 @@ The first button in the left sidebar is now Dashboard (it is the page POS opens 
 To change the app tiles, add this to config.js:
   window.ACACIA_APPS=[{n:"Acacia Books",i:"📚",u:"https://acacia-books.vercel.app/",s:"Accounts"}];
 No new SQL. Files changed: index.html, style.css, app.js, README.txt.
+
+
+TOP BAR (Point of sale)
+Shift, Held sales, Sales, Reports, Preferences and Settings are no longer tiles on the Dashboard or buttons in the left sidebar. They sit in the top bar of the selling screen (Dashboard > Point of sale / Sell). Reports shows sales, payment methods, daily totals and top items for Today, 7 days, 30 days or any date range.
+Files changed: index.html, style.css, app.js, README.txt.

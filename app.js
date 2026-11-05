@@ -267,6 +267,24 @@ $("bToday").onclick=function(){var c=cfg(),t=today(),l=(D.invoices||[]).filter(f
   $("tdBody").innerHTML='<p><b>'+l.length+' sale(s)</b> · total '+cur()+' '+money(tot)+'</p><p>'+Object.keys(by).map(function(k){return esc(k)+": "+money(by[k])}).join(" · ")+'</p><table><tr><th>No.</th><th>Time</th><th>Till</th><th>Customer</th><th class="r">Total</th><th></th></tr>'+l.map(function(i,n){return'<tr><td>'+esc(i.invoiceNumber)+'</td><td>'+(i.pos?new Date(i.pos.at).toLocaleTimeString():"")+'</td><td>'+esc(i.pos&&i.pos.till)+'</td><td>'+esc(i.customer)+'</td><td class="r">'+money(i.totalKES)+'</td><td><button class="btn alt" data-p="'+n+'">Reprint</button></td></tr>'}).join("")+'</table>';
   $("tdBody").onclick=function(e){var b=e.target.closest("[data-p]");if(b)printReceipt(l[+b.dataset.p])};open_("mToday")};
 
+
+/* ---------- reports (top bar > Reports) ---------- */
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function repRange(days){var e=new Date(),s=new Date();s.setDate(s.getDate()-days);$("rFrom").value=ymd(s);$("rTo").value=ymd(e);renderRep()}
+function renderRep(){var f=$("rFrom").value||today(),t=$("rTo").value||today(),by={},items={},days={},tot=0,vat=0,n=0;
+  var l=(D.invoices||[]).filter(function(i){return i&&i.source==="POS"&&i.date>=f&&i.date<=t});
+  l.forEach(function(i){n++;tot+=Number(i.totalKES)||0;vat+=Number(i.vatKES||i.vat)||0;days[i.date]=days[i.date]||{n:0,t:0};days[i.date].n++;days[i.date].t+=Number(i.totalKES)||0;
+    (i.pos&&i.pos.tenders||[]).forEach(function(x){by[x.m]=(by[x.m]||0)+(Number(x.a)||0)-(x.m==="Cash"?Number(i.pos.change)||0:0)});
+    (i.items||[]).forEach(function(x){var k=x.desc||"Item";items[k]=items[k]||{q:0,t:0};items[k].q+=Number(x.qty)||0;items[k].t+=Number(x.totalWithVat)||0})});
+  var top=Object.keys(items).sort(function(a,b){return items[b].t-items[a].t}).slice(0,15);
+  $("rBody").innerHTML='<p><b>'+n+' sale(s)</b> · total '+cur()+' '+money(tot)+(n?' · average '+money(tot/n):'')+'</p>'
+   +'<h3>By payment method</h3><p>'+(Object.keys(by).length?Object.keys(by).map(function(k){return esc(k)+": "+money(by[k])}).join(" · "):"No payments in this period")+'</p>'
+   +'<h3>By day</h3><table><tr><th>Date</th><th class="r">Sales</th><th class="r">Total</th></tr>'+Object.keys(days).sort().map(function(d){return'<tr><td>'+esc(d)+'</td><td class="r">'+days[d].n+'</td><td class="r">'+money(days[d].t)+'</td></tr>'}).join("")+'</table>'
+   +'<h3>Top items</h3><table><tr><th>Item</th><th class="r">Qty</th><th class="r">Total</th></tr>'+top.map(function(k){return'<tr><td>'+esc(k)+'</td><td class="r">'+items[k].q+'</td><td class="r">'+money(items[k].t)+'</td></tr>'}).join("")+'</table>'}
+$("bRep").onclick=function(){repRange(0);open_("mRep")};
+$("rFrom").onchange=$("rTo").onchange=renderRep;
+document.querySelector("#mRep").addEventListener("click",function(e){var b=e.target.closest("[data-rq]");if(b)repRange(+b.dataset.rq)});
+
 /* ---------- receipt ---------- */
 function qrSvg(t){try{var q=qrcode(0,"M");q.addData(String(t));q.make();return q.createSvgTag({cellSize:3,margin:0,scalable:true})}catch(e){return""}}
 function fiscalBlock(inv){var e=inv.etims;
@@ -325,11 +343,7 @@ function renderDash(){var d=$("dash");if(!S||!d||!$("dKpi")||!$("app").classList
    +'<div class="dkpi" id="dKpi"></div>'
    +'<h3 class="dsec">Modules</h3><div class="dtiles">'
    +'<button type="button" class="tile main" data-go="sell"><span class="ic">🛒</span><b>Point of sale</b><small>Sell and take payment</small></button>'
-   +'<button type="button" class="tile" data-go="shift"><span class="ic">🕒</span><b>Shift</b><small>Open or close shift</small></button>'
-   +'<button type="button" class="tile" data-go="held"><span class="ic">⏸</span><b>Held sales</b><small>Recall a held sale</small></button>'
-   +'<button type="button" class="tile" data-go="sales"><span class="ic">🧾</span><b>Sales</b><small>Today\'s sales and receipts</small></button>'
-   +'<button type="button" class="tile" data-go="pref"><span class="ic">🎨</span><b>Preferences</b><small>Theme and appearance</small></button>'
-   +'<button type="button" class="tile" data-go="set"><span class="ic">⚙️</span><b>Settings</b><small>Till, warehouse, funds</small></button></div>'
+   +'</div>'
    +'<h3 class="dsec">Acacia apps</h3><div class="dtiles">'+appList().map(function(a){return'<a class="tile" href="'+esc(a.u)+'" target="_blank" rel="noopener"><span class="ic">'+esc(a.i||"🔗")+'</span><b>'+esc(a.n)+'</b><small>'+esc(a.s||"Open in a new tab")+'</small></a>'}).join("")+'</div>'
    +'<div class="dprodhead"><h3 class="dsec">Products</h3><div class="dchips" id="dChips"><button type="button" data-f="all" class="on">All</button><button type="button" data-f="low">Low stock</button><button type="button" data-f="out">Out of stock</button></div><input id="dQ" type="search" placeholder="Search products" autocomplete="off" aria-label="Search products"></div>'
    +'<div class="count" id="dCount"></div><div class="dgrid" id="dProds"></div>';
