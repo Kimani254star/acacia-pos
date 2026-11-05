@@ -28,6 +28,6 @@ To change the app tiles, add this to config.js:
 No new SQL. Files changed: index.html, style.css, app.js, README.txt.
 
 
-TOP BAR (Point of sale)
-Shift, Held sales, Sales, Reports, Preferences and Settings are no longer tiles on the Dashboard or buttons in the left sidebar. They sit in the top bar of the selling screen (Dashboard > Point of sale / Sell). Reports shows sales, payment methods, daily totals and top items for Today, 7 days, 30 days or any date range.
+REPORTS
+The left sidebar keeps Shift, Held sales, Sales, Preferences and Settings, and has a new Reports button (after Sales). Reports shows sales, payment methods, daily totals and top items for Today, 7 days, 30 days or any date range. The module tiles (Shift, Held sales, Sales, Preferences, Settings) were removed from the Dashboard; only Point of sale remains there.
 Files changed: index.html, style.css, app.js, README.txt.
