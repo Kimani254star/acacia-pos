@@ -129,3 +129,18 @@ body:has(#rrail.min) #mShift,body:has(#rrail.min) #mHeld,body:has(#rrail.min) #m
 #mShift .box,#mHeld .box,#mToday .box,#mRep .box,#mPref .box,#mSet .box{width:100%;max-height:none;min-height:0;box-shadow:none;border:1px solid var(--line,rgba(0,0,0,.08))}
 #side,#rrail{position:relative;z-index:60}
 @media(max-width:820px){#mShift,#mHeld,#mToday,#mRep,#mPref,#mSet{padding:12px}}
+
+/* Sell screen uses the same colours as the Dashboard (all themes) */
+html:root:root{--pc-bg:var(--bg);--pc-card:var(--card);--pc-line:var(--line);--pc-ink:var(--ink);--pc-mut:var(--mut);--pc-brand:var(--navy2);--pc-brand2:var(--navy);--pc-gold:var(--gold);--pc-ph:var(--soft);--pc-ph-ink:var(--acc);--pc-ok:var(--ok);--pc-low:#b45309;--pc-out:var(--bad);--pc-dis:var(--fline)}
+.p{border-radius:10px}.p .add{border-radius:8px}.p .abv{color:#111}
+
+/* Dashboard products are the same size as the Sell screen products */
+.dgrid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.dp{border-radius:10px}
+.dp .im{aspect-ratio:1/.95}
+.dp .im .ini{font:700 40px/1 "Playfair Display",Georgia,"Times New Roman",serif;letter-spacing:.02em}
+.dp .bd{gap:7px;padding:12px 13px 13px}
+.dp .n{font:700 16px/1.25 "Playfair Display",Georgia,"Times New Roman",serif}
+.dp .pr{font:500 14px/1.2 "DM Mono",ui-monospace,Menlo,monospace;color:var(--ink)}
+.dp .st{font:500 11px/1 "DM Mono",ui-monospace,Menlo,monospace}
+@media(max-width:820px){.dgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.dp .n{font-size:14px}.dp .bd{padding:10px}}

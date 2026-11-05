@@ -37,3 +37,5 @@ Shift, Held sales, Sales, Reports, Preferences and Settings now open as a full p
 Files changed: style.css, app.js, README.txt.
 
 The "Acacia apps" tiles were removed from the Dashboard. Files changed: app.js, README.txt.
+
+The Sell screen now uses the same colours as the Dashboard, and Dashboard product cards are the same size as the Sell product cards. Files changed: style.css, README.txt.
