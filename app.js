@@ -150,7 +150,8 @@ $("hdBody").onclick=function(e){var b=e.target.closest("button");if(!b)return;va
   if(b.dataset.r){if(cart.length&&!confirm("Replace the current sale?"))return;cart=x.cart;$("cu").value=x.customer;close_();setView("sell")}lss("pos_held",h.filter(function(z){return z!==x}));renderCart();if(!b.dataset.r)$("bHeld").onclick()};
 
 /* ---------- modals ---------- */
-function open_(id){$(id).classList.add("on")}function close_(){document.querySelectorAll(".modal.on").forEach(function(m){m.classList.remove("on")})}
+var MODPG=["mShift","mHeld","mToday","mRep","mPref","mSet"];function closeMods(){MODPG.forEach(function(k){var e=$(k);if(e)e.classList.remove("on")})}
+function open_(id){if(MODPG.indexOf(id)>-1)closeMods();$(id).classList.add("on")}function close_(){document.querySelectorAll(".modal.on").forEach(function(m){m.classList.remove("on")})}
 document.addEventListener("click",function(e){if(e.target.hasAttribute&&e.target.hasAttribute("data-x"))close_()});
 
 /* ---------- payment ---------- */
@@ -312,7 +313,7 @@ function appList(){return Array.isArray(window.ACACIA_APPS)&&window.ACACIA_APPS.
   {n:"Payroll",i:"👥",u:"https://payroll-gamma.vercel.app/",s:"Payroll & compensation"},
   {n:"Projects",i:"🗂️",u:"https://project-hub-gamma-woad.vercel.app/",s:"Project hub"},
   {n:"Plans",i:"📋",u:"https://plans-psi-ten.vercel.app/",s:"Plans"}]}
-function setView(v){v=v==="sell"?"sell":"dash";$("app").classList.toggle("v-dash",v==="dash");$("bDash").classList.toggle("on",v==="dash");$("bSell").classList.toggle("on",v==="sell");lss("pos_view",v);if(v==="dash")renderDash()}
+function setView(v){closeMods();v=v==="sell"?"sell":"dash";$("app").classList.toggle("v-dash",v==="dash");$("bDash").classList.toggle("on",v==="dash");$("bSell").classList.toggle("on",v==="sell");lss("pos_view",v);if(v==="dash")renderDash()}
 function dashStock(){var pen=pending(),m={},keys=[];
   Object.keys(D.inv||{}).forEach(function(w){D.inv[w].forEach(function(it){if(!it||it.active===false||!it.name)return;var k=low(it.sku)||low(it.name);if(!(k in m)){m[k]=0;keys.push(k)}m[k]+=(Number(it.qty)||0)});});
   var out=0,lw=0;keys.forEach(function(k){var h=m[k]-(pen[k]||0);if(h<=0)out++;else if(h<=5)lw++});
