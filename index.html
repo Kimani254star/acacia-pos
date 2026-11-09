@@ -25,7 +25,7 @@
 <div class="tot"><div><span>Subtotal</span><span id="tSub"></span></div><div><span>Discount</span><span id="tDis"></span></div><div><span>VAT</span><span id="tVat"></span></div><div class="g"><span>Total</span><span id="tTot"></span></div></div>
 <div class="acts"><button class="btn alt" id="bHold">Hold</button><button class="btn alt" id="bClr">Clear</button><button class="btn gold pay" id="bPay">Pay</button></div>
 </aside></main><aside id="rrail" aria-label="Acacia tools"><button type="button" id="rrTog" aria-expanded="true" title="Hide / show tools">&raquo;</button><div class="rr-list">
-<button type="button" data-bk="">📔 Notebook</button><button type="button" data-bk="">🎥 Webinar</button><button type="button" data-bk="">🌳 Team Status</button><button type="button" data-bk="meet.html">📹 Meet</button><button type="button" data-bk="acacia-docs.html">📝 Docs</button><button type="button" data-bk="acacia-sheets.html">📊 Sheets</button><button type="button" data-bk="acacia-photos.html">📸 Photos</button><button type="button" data-bk="acacia-calendar.html">📅 Calendar</button><button type="button" data-bk="">🏢 Organization Details</button></div></aside>
+<button type="button" data-t="notes">📔 Notebook</button><button type="button" data-t="webinar">🎥 Webinar</button><button type="button" data-t="team">🌳 Team Status</button><button type="button" data-t="support">🎧 Support Hub</button><button type="button" data-bk="meet.html">📹 Meet</button><button type="button" data-bk="acacia-docs.html">📝 Docs</button><button type="button" data-bk="acacia-sheets.html">📊 Sheets</button><button type="button" data-bk="acacia-photos.html">📸 Photos</button><button type="button" data-bk="acacia-calendar.html">📅 Calendar</button><button type="button" data-t="org">🏢 Organization Details</button></div></aside>
 </div>
 
 <div class="modal" id="mPay"><div class="box"><h2>Payment</h2><div class="seg" id="pType"><button type="button" data-t="cash" class="on">Cash sale</button><button type="button" data-t="credit">Credit sale</button></div>
@@ -58,4 +58,4 @@
 <div class="modal" id="mLock" style="background:var(--navy)"><div class="box"><h2>Acacia POS is not active</h2><p>This company has not added Acacia POS yet. POS needs an Acacia Books company (the Free plan is enough). It costs KES 2,500 per month on the Free Books plan, or only KES 500 per month on a paid Books plan. Ask Acacia Support to switch it on.</p><p id="lkWhy" style="color:var(--mut)"></p><p>Once it is added, sign in again and it opens straight away.</p><div class="row"><button class="btn" id="lkOut" style="flex:1">Sign out</button></div></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="qr.js"></script><script src="app.js"></script></body></html>
+<script src="qr.js"></script><script src="app.js"></script><script src="acacia-pos-bridge.js"></script><script src="acacia-support.js"></script><script src="acacia-sidebar.js"></script><script src="acacia-bell.js"></script></body></html>
