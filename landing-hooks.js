@@ -5,3 +5,5 @@ window.acaciaHideLanding=window.openLogin;
 window.showRegisterForm=function(){window.open("https://acacia-books.vercel.app/","_blank","noopener")};
 window.choosePlan=function(){window.showRegisterForm()};
 document.addEventListener("click",function(e){if(e.target.closest("#lpBack")){e.preventDefault();document.body.classList.add("lp-on");try{history.replaceState(null,"",location.pathname+location.search)}catch(x){}}});
+
+window.addEventListener("message",function(e){if(e.origin!=="https://acacia-books.vercel.app"&&e.origin!==location.origin)return;var m=e.data&&e.data.acx;if(m==="login")window.openLogin();if(m==="register")window.showRegisterForm()});
