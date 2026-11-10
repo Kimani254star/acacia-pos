@@ -364,7 +364,7 @@ $("bSet").onclick=function(){var c=cfg(),w=whList();$("sTill").value=c.till;$("s
 $("sSave").onclick=async function(){var map={};document.querySelectorAll("#sMap select").forEach(function(s){if(s.value)map[s.dataset.m]=s.value});
   lss("pos_local",{till:$("sTill").value.trim()||"T1",wh:$("sWh").value});var n={walk:$("sWalk").value.trim()||"Walk-in Customer",days:parseInt($("sDays").value,10)||0,neg:$("sNeg").value==="1",foot:$("sFoot").value,map:map};
   try{await mutate("posSettings",function(){return n},{});D.posSettings=n}catch(e){toast(e.message);return}close_();fillStatic();render();toast("Settings saved")};
-$("bOut").onclick=function(){if(cart.length&&!confirm("Sign out and lose the current sale?"))return;localStorage.removeItem("pos_session");location.reload()};
+$("bOut").onclick=function(){if(cart.length&&!confirm("Log out and lose the current sale?"))return;localStorage.removeItem("pos_session");location.reload()};
 $("lb").onclick=login;$("lp").addEventListener("keydown",function(e){if(e.key==="Enter")login()});
 var ss=lsg("pos_session",null);if(ss&&ss.companyId){S=ss;start()}
 
