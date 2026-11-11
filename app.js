@@ -39,10 +39,18 @@ async function login(){
   if(!c||!e||!p){$("err").textContent="Enter company, email and password.";return}
   $("lb").disabled=true;
   try{
-    var r=await rest("app_accounts?select=data,company_id&or="+encodeURIComponent("(login_id.eq."+e+",username.eq."+e+")")),rows=await r.json(),hit=null;
-    for(var i=0;i<rows.length;i++){var d=Object.assign({},rows[i].data||{});d.companyId=d.companyId||rows[i].company_id;if(!companyMatch(d,rows[i].company_id,c))continue;
-      var ok=false;if(d.passwordHash){ok=(await sha((d.passwordSalt||"")+":"+p))===d.passwordHash}else if(d.password!=null){ok=d.password===p}
-      if(ok){hit=d;break}}
+    var hit=null,rows=null;
+    /* the password is checked inside Postgres (acx_login); the browser never sees a hash */
+    var rr=await fetch(URL_+"/rest/v1/rpc/acx_login",{method:"POST",headers:H(),body:JSON.stringify({p_email:e,p_password:p,p_company:c})});
+    if(rr.status===404){ /* acx_login not installed yet: old path, remove once step2_secure_login.sql is run */
+      var r=await rest("app_accounts?select=data,company_id&or="+encodeURIComponent("(login_id.eq."+e+",username.eq."+e+")")),old=await r.json();
+      for(var i=0;i<old.length;i++){var d=Object.assign({},old[i].data||{});d.companyId=d.companyId||old[i].company_id;if(!companyMatch(d,old[i].company_id,c))continue;
+        if(d.passwordHash&&(await sha((d.passwordSalt||"")+":"+p))===d.passwordHash){hit=d;break}}
+    }else if(rr.ok){
+      rows=await rr.json();
+      if(Array.isArray(rows)&&rows.length){var row=rows[0],d2=Object.assign({},row.data||{});d2.companyId=d2.companyId||row.company_id;hit=d2;
+        try{if(row.session&&window.AcxSession)window.AcxSession.add(row.session)}catch(_){}}
+    }else{throw new Error(await rr.text())}
     if(!hit){$("err").textContent="Company, email or password is not correct.";return}
     S={companyId:String(hit.companyId),companyName:hit.companyName||c,name:hit.name||hit.fullName||hit.username||e,email:e,role:hit.role||""};
     lss("pos_session",S);await start();
@@ -61,7 +69,7 @@ async function loadAll(){
 async function start(){
   $("login").style.display="none";$("app").style.display="grid";
   try{await loadAll()}catch(e){toast("Could not load data: "+e.message);return}
-  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+(a&&a.mode?"Plan: "+(a.mode==="linked"?"Paid Books plan (KES 500/month)":"Free Books plan (KES 2,500/month)")+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
+  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+(a&&a.mode?"Plan: "+(a.mode==="linked"?"Paid Books plan (KES 500/month)":"Free Books plan (KES 2,500/month)")+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");try{window.AcxSession&&window.AcxSession.clear(true)}catch(_){}location.reload()};return}
   fillStatic();render();flushQueue();
 }
 function cfg(){var s=D.posSettings||{},l=lsg("pos_local",{});return{till:l.till||"T1",wh:l.wh||"",walk:s.walk||"Walk-in Customer",days:s.days!=null?s.days:30,neg:!!s.neg,foot:s.foot||"Thank you for shopping with us.",map:s.map||{}}}
@@ -364,7 +372,7 @@ $("bSet").onclick=function(){var c=cfg(),w=whList();$("sTill").value=c.till;$("s
 $("sSave").onclick=async function(){var map={};document.querySelectorAll("#sMap select").forEach(function(s){if(s.value)map[s.dataset.m]=s.value});
   lss("pos_local",{till:$("sTill").value.trim()||"T1",wh:$("sWh").value});var n={walk:$("sWalk").value.trim()||"Walk-in Customer",days:parseInt($("sDays").value,10)||0,neg:$("sNeg").value==="1",foot:$("sFoot").value,map:map};
   try{await mutate("posSettings",function(){return n},{});D.posSettings=n}catch(e){toast(e.message);return}close_();fillStatic();render();toast("Settings saved")};
-$("bOut").onclick=function(){if(cart.length&&!confirm("Log out and lose the current sale?"))return;localStorage.removeItem("pos_session");location.reload()};
+$("bOut").onclick=function(){if(cart.length&&!confirm("Log out and lose the current sale?"))return;localStorage.removeItem("pos_session");try{window.AcxSession&&window.AcxSession.clear(true)}catch(_){}location.reload()};
 $("lb").onclick=login;$("lp").addEventListener("keydown",function(e){if(e.key==="Enter")login()});
 var ss=lsg("pos_session",null);if(ss&&ss.companyId){S=ss;start()}
 
