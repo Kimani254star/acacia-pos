@@ -39,20 +39,12 @@ async function login(){
   if(!c||!e||!p){$("err").textContent="Enter company, email and password.";return}
   $("lb").disabled=true;
   try{
-    var hit=null,rows=null;
-    /* the password is checked inside Postgres (acx_login); the browser never sees a hash */
-    var rr=await fetch(URL_+"/rest/v1/rpc/acx_login",{method:"POST",headers:H(),body:JSON.stringify({p_email:e,p_password:p,p_company:c})});
-    if(rr.status===404){ /* acx_login not installed yet: old path, remove once step2_secure_login.sql is run */
-      var r=await rest("app_accounts?select=data,company_id&or="+encodeURIComponent("(login_id.eq."+e+",username.eq."+e+")")),old=await r.json();
-      for(var i=0;i<old.length;i++){var d=Object.assign({},old[i].data||{});d.companyId=d.companyId||old[i].company_id;if(!companyMatch(d,old[i].company_id,c))continue;
-        if(d.passwordHash&&(await sha((d.passwordSalt||"")+":"+p))===d.passwordHash){hit=d;break}}
-    }else if(rr.ok){
-      rows=await rr.json();
-      if(Array.isArray(rows)&&rows.length){var row=rows[0],d2=Object.assign({},row.data||{});d2.companyId=d2.companyId||row.company_id;hit=d2;
-        try{if(row.session&&window.AcxSession)window.AcxSession.add(row.session)}catch(_){}}
-    }else{throw new Error(await rr.text())}
+    var r=await rest("app_accounts?select=data,company_id&or="+encodeURIComponent("(login_id.eq."+e+",username.eq."+e+")")),rows=await r.json(),hit=null;
+    for(var i=0;i<rows.length;i++){var d=Object.assign({},rows[i].data||{});d.companyId=d.companyId||rows[i].company_id;if(!companyMatch(d,rows[i].company_id,c))continue;
+      var ok=false;if(d.passwordHash){ok=(await sha((d.passwordSalt||"")+":"+p))===d.passwordHash}else if(d.password!=null){ok=d.password===p}
+      if(ok){hit=d;break}}
     if(!hit){$("err").textContent="Company, email or password is not correct.";return}
-    S={companyId:String(hit.companyId),companyName:hit.companyName||c,name:hit.name||hit.fullName||hit.username||e,email:e,role:hit.role||""};
+    try{if(window.AcxSession)await window.AcxSession.start(e,p,String(hit.companyId))}catch(_){}S={companyId:String(hit.companyId),companyName:hit.companyName||c,name:hit.name||hit.fullName||hit.username||e,email:e,role:hit.role||""};
     lss("pos_session",S);await start();
   }catch(x){$("err").textContent="Could not reach Acacia. Check your connection."}finally{$("lb").disabled=false}
 }
@@ -66,22 +58,10 @@ async function loadAll(){
   if(Array.isArray(n.inventory)&&n.inventory.length&&!Object.keys(n.inv).length){n.inv.Main=n.inventory;n.invKey.Main="inventory"}
   D=n;
 }
-/* Company gate - same rules as every other Acacia app: a new company must be approved by Acacia Support (which also checks the payment)
-   before anyone signs in; deactivated, rejected or suspended companies are locked out. Fails open if the cloud cannot be read. */
-async function gateCo(cid,login){
-  try{var rs=await fetch(URL_+"/rest/v1/rpc/acx_account_state",{method:"POST",headers:H(),body:JSON.stringify({p_company:low(cid),p_login:low(login)})});
-    if(rs.ok){var st=await rs.json();if(/^(deleted|deactivated)$/.test(String(st)))return"This company account has been deactivated or removed. Contact Acacia support."}}catch(e){}
-  try{var r=await rest("acacia_company_status?select=status&company_id=eq."+encodeURIComponent(cid));
-    if(r.ok){var j=await r.json(),s=j[0]&&j[0].status;
-      if(s==="pending")return"Your company is waiting for approval by Acacia support. You will be able to sign in as soon as it is approved.";
-      if(s&&s!=="active")return'Your company account is "'+s+'". Please contact Acacia support.'}}catch(e){}
-  return null}
 async function start(){
-  var gm=await gateCo(S.companyId,S.email);
-  if(gm){try{localStorage.removeItem("pos_session")}catch(e){}S=null;$("login").style.display="";$("app").style.display="none";$("err").textContent=gm;return}
   $("login").style.display="none";$("app").style.display="grid";
   try{await loadAll()}catch(e){toast("Could not load data: "+e.message);return}
-  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+(a&&a.mode?"Plan: "+(a.mode==="linked"?"Paid Books plan (KES 500/month)":"Free Books plan (KES 2,500/month)")+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");try{window.AcxSession&&window.AcxSession.clear(true)}catch(_){}location.reload()};return}
+  var a=D.appAddons&&D.appAddons.pos;if(!(a&&a.active&&(!a.until||a.until>=today()))){$("lkWhy").textContent=(a&&a.active?"Your POS access ended on "+a.until+". ":"")+(a&&a.mode?"Plan: "+(a.mode==="linked"?"Paid Books plan (KES 500/month)":"Free Books plan (KES 2,500/month)")+". ":"")+"Company ID checked: "+S.companyId;$("mLock").classList.add("on");$("lkOut").onclick=function(){localStorage.removeItem("pos_session");location.reload()};return}
   fillStatic();render();flushQueue();
 }
 function cfg(){var s=D.posSettings||{},l=lsg("pos_local",{});return{till:l.till||"T1",wh:l.wh||"",walk:s.walk||"Walk-in Customer",days:s.days!=null?s.days:30,neg:!!s.neg,foot:s.foot||"Thank you for shopping with us.",map:s.map||{}}}
@@ -242,7 +222,7 @@ var flushing=false;
 /* Stock is taken off in the warehouse the item was sold from, as soon as the sale uploads (same cloud stock Books and Inventory read).
  * Batches: earliest expiry first, same as Books. Books is told (invoice.stockDone) so it never deducts the same sale again. */
 function deductArr(arr,lines){lines.forEach(function(l){var k=low(l.sku),nm=low(l.desc);
-    var it=arr.filter(function(x){return x&&(k&&x.sku?low(x.sku)===k:low(x.name)===nm)})[0];if(!it)return;
+    var c=arr.filter(function(x){return x&&(k&&x.sku?low(x.sku)===k:low(x.name)===nm)});if(c.length>1){var n2=c.filter(function(x){return low(x.name)===nm});c=n2.length?[n2[0]]:[]}var it=c[0];if(!it){try{console.warn('[pos] stock not deducted: no unique match for',l.sku,l.desc)}catch(e){}return}
     var q=Number(l.qty)||0;it.qty=Math.max((parseFloat(it.qty)||0)-q,0);
     if(Array.isArray(it.batches)&&it.batches.length){var left=q,ex=function(b){return b.expiryDate||b.expiry||""};
       it.batches.filter(function(b){return(parseFloat(b.qty)||0)>0}).sort(function(x,y){var p=ex(x),r=ex(y);return p||r?p?r?new Date(p)-new Date(r):-1:1:0}).forEach(function(b){if(left<=1e-7)return;var t=Math.min(parseFloat(b.qty)||0,left);b.qty=(parseFloat(b.qty)||0)-t;left-=t})}});
@@ -250,14 +230,9 @@ function deductArr(arr,lines){lines.forEach(function(l){var k=low(l.sku),nm=low(
 function saveRec(r){var qq=lsg("pos_queue",[]);qq.forEach(function(x,i){if(x.invoice.id===r.invoice.id)qq[i]=r});lss("pos_queue",qq)}
 async function deductStock(r){if(r.invoice.stockDone)return;r.stk=r.stk||{};var by={};
   (r.invoice.items||[]).forEach(function(l){if(l&&(!l.type||low(l.type)==="product")){var w=l.warehouse||"Main";(by[w]=by[w]||[]).push(l)}});
-  var unresolved=false;
   for(var w in by){if(r.stk[w])continue;var key=(D.invKey||{})[w];
-    /* the sale's warehouse name does not match a stock row (e.g. "Main" vs "Main Warehouse"): use the row that holds these items */
-    if(!key){var lines=by[w];Object.keys(D.invKey||{}).forEach(function(k){if(key)return;if((D.inv[k]||[]).some(function(it){return lines.some(function(l){return(low(l.sku)&&low(it.sku)===low(l.sku))||(low(it.name)&&low(it.name)===low(l.desc||l.name))})}))key=D.invKey[k]})}
-    if(key){await mutate(key,function(a){return deductArr(Array.isArray(a)?a:[],by[w])},[]);r.stk[w]=1;saveRec(r)}
-    else unresolved=true}
-  /* nothing was taken off the cloud stock for some line: do NOT mark the sale done, so Books deducts it instead of it being lost */
-  if(unresolved)return;
+    if(key){await mutate(key,function(a){return deductArr(Array.isArray(a)?a:[],by[w])},[])}
+    r.stk[w]=1;saveRec(r)}
   r.invoice.stockDone=true;saveRec(r)}
 async function flushQueue(){if(flushing||!S)return true;var q=lsg("pos_queue",[]);if(!q.length){hdr();return true}flushing=true;var ok=true;
   try{for(var i=0;i<q.length;i++){var r=q[i];
@@ -389,7 +364,7 @@ $("bSet").onclick=function(){var c=cfg(),w=whList();$("sTill").value=c.till;$("s
 $("sSave").onclick=async function(){var map={};document.querySelectorAll("#sMap select").forEach(function(s){if(s.value)map[s.dataset.m]=s.value});
   lss("pos_local",{till:$("sTill").value.trim()||"T1",wh:$("sWh").value});var n={walk:$("sWalk").value.trim()||"Walk-in Customer",days:parseInt($("sDays").value,10)||0,neg:$("sNeg").value==="1",foot:$("sFoot").value,map:map};
   try{await mutate("posSettings",function(){return n},{});D.posSettings=n}catch(e){toast(e.message);return}close_();fillStatic();render();toast("Settings saved")};
-$("bOut").onclick=function(){if(cart.length&&!confirm("Log out and lose the current sale?"))return;localStorage.removeItem("pos_session");try{window.AcxSession&&window.AcxSession.clear(true)}catch(_){}location.reload()};
+$("bOut").onclick=function(){if(cart.length&&!confirm("Log out and lose the current sale?"))return;localStorage.removeItem("pos_session");location.reload()};
 $("lb").onclick=login;$("lp").addEventListener("keydown",function(e){if(e.key==="Enter")login()});
 var ss=lsg("pos_session",null);if(ss&&ss.companyId){S=ss;start()}
 
