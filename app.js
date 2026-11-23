@@ -372,7 +372,7 @@ var ss=lsg("pos_session",null);if(ss&&ss.companyId){S=ss;start()}
 (function(){var rr=document.getElementById("rrail");if(!rr)return;var BK=(window.ACACIA_BOOKS_URL||"https://acacia-books.vercel.app/").replace(/\/?$/,"/");
 try{if(localStorage.getItem("pos_rail_min")==="1"){rr.classList.add("min");document.getElementById("rrTog").setAttribute("aria-expanded","false")}}catch(e){}
 document.getElementById("rrTog").onclick=function(){var m=rr.classList.toggle("min");this.setAttribute("aria-expanded",m?"false":"true");try{localStorage.setItem("pos_rail_min",m?"1":"0")}catch(e){}};
-rr.querySelectorAll("[data-bk]").forEach(function(b){b.onclick=function(){var w=window.open(BK+b.getAttribute("data-bk"),"_blank");if(!w)alert("Popup blocked! Please allow pop-ups for this site.")}})})();
+rr.querySelectorAll("[data-bk]").forEach(function(b){b.onclick=function(){var u=b.getAttribute("data-bk"),w=window.open(/^https?:/i.test(u)?u:BK+u,"_blank");if(!w)alert("Popup blocked! Please allow pop-ups for this site.")}})})();
 })();
 
 
@@ -382,4 +382,26 @@ function sync(){var open=null;Object.keys(m).forEach(function(k){var e=$(k);if(e
   Object.keys(m).forEach(function(k){var b=$(m[k]);if(b)b.classList.toggle("on",m[k]===open)});
   var v=document.getElementById("app").classList.contains("v-dash");$("bDash").classList.toggle("on",!open&&v);$("bSell").classList.toggle("on",!open&&!v)}
 Object.keys(m).forEach(function(k){var e=$(k);if(e)new MutationObserver(sync).observe(e,{attributes:true,attributeFilter:["class"]})});
+})();
+/* installable app */
+if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+/* install button: appears only when the browser says this app can be installed (Chrome / Edge / Android) */
+(function () {
+  var dp = null, btn = null;
+  function standalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+  function hide() { if (btn && btn.parentNode) btn.parentNode.removeChild(btn); btn = null; }
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); dp = e;
+    if (standalone() || btn) return;
+    try { if (sessionStorage.getItem('acx_install_hidden')) return; } catch (x) {}
+    btn = document.createElement('div');
+    btn.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483000;display:flex;align-items:center;gap:6px;background:#1e3a8a;color:#fff;border-radius:999px;padding:9px 8px 9px 16px;font:600 13px system-ui,Segoe UI,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer';
+    btn.innerHTML = '<span>Install app</span><span data-x="1" style="padding:0 8px;opacity:.85;font-size:16px;line-height:1">&times;</span>';
+    btn.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.getAttribute && ev.target.getAttribute('data-x')) { try { sessionStorage.setItem('acx_install_hidden', '1'); } catch (x) {} hide(); return; }
+      if (!dp) return; dp.prompt(); dp.userChoice.then(function () { dp = null; hide(); }, function () {});
+    });
+    (document.body || document.documentElement).appendChild(btn);
+  });
+  window.addEventListener('appinstalled', hide);
 })();
