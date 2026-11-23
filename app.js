@@ -338,7 +338,8 @@ function dashProds(){var t0=term;term=dq;var all=catalogue();term=t0;
   dashProds.list=list;
   document.querySelectorAll("#dChips button").forEach(function(b){b.classList.toggle("on",b.dataset.f===dfilter)})}
 function renderDash(){var d=$("dash");if(!S||!d||!$("dKpi")||!$("app").classList.contains("v-dash"))return;
-  try{dashKpi();dashProds()}catch(e){}}
+  try{dashKpi();dashProds()}catch(e){}
+  try{if(window.AcxPosDash)window.AcxPosDash.paint({D:D,S:S,dashStock:dashStock,myShift:myShift,cfg:cfg,cur:cur})}catch(e){}}
 (function(){var d=$("dash");if(!d)return;
   d.innerHTML='<div class="dh"><div><h2 id="dTitle">Dashboard</h2><div class="dsub" id="dSub"></div></div><button type="button" class="btn gold" data-go="sell">🛒 Start selling</button></div>'
    +'<div class="dkpi" id="dKpi"></div>'
